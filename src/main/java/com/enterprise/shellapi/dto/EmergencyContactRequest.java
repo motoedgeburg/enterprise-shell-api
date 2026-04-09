@@ -12,10 +12,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class EmergencyContactRequest {
 
+    private Long id;
+
     @NotBlank(message = "Emergency contact name is required")
     private String name;
 
+    @NotBlank(message = "Relationship is required")
     private String relationship;
+
     private String phone;
     private String email;
     private Boolean isPrimary;

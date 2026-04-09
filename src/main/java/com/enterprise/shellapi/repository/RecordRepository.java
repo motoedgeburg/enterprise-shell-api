@@ -5,6 +5,7 @@ import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
 import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.util.SqlQueryLoader;
+import com.enterprise.shellapi.util.SsnEncryptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -28,35 +29,39 @@ public class RecordRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final SqlQueryLoader sqlQueryLoader;
+    private final SsnEncryptor ssnEncryptor;
 
-    private static final RowMapper<Record> ROW_MAPPER = (rs, rowNum) -> Record.builder()
-            .id(rs.getLong("id"))
-            .personalInfo(PersonalInfo.builder()
-                    .name(rs.getString("name"))
-                    .email(rs.getString("email"))
-                    .phone(rs.getString("phone"))
-                    .address(rs.getString("address"))
-                    .dateOfBirth(getLocalDate(rs, "date_of_birth"))
-                    .ssn(rs.getString("ssn"))
-                    .bio(rs.getString("bio"))
-                    .build())
-            .workInfo(WorkInfo.builder()
-                    .jobTitle(rs.getString("job_title"))
-                    .manager(rs.getString("manager"))
-                    .department(rs.getString("department"))
-                    .status(rs.getString("status"))
-                    .startDate(getLocalDate(rs, "start_date"))
-                    .employmentType(rs.getString("employment_type"))
-                    .build())
-            .preferences(Preferences.builder()
-                    .remoteEligible(rs.getBoolean("remote_eligible"))
-                    .notificationsEnabled(rs.getBoolean("notifications_enabled"))
-                    .notificationChannels(parseChannels(rs.getString("notification_channels")))
-                    .accessLevel(rs.getString("access_level"))
-                    .notes(rs.getString("notes"))
-                    .build())
-            .createdAt(getTimestamp(rs, "created_at"))
-            .build();
+    private RowMapper<Record> rowMapper() {
+        return (rs, rowNum) -> Record.builder()
+                .id(rs.getLong("id"))
+                .personalInfo(PersonalInfo.builder()
+                        .name(rs.getString("name"))
+                        .email(rs.getString("email"))
+                        .phone(rs.getString("phone"))
+                        .address(rs.getString("address"))
+                        .dateOfBirth(getLocalDate(rs, "date_of_birth"))
+                        .ssn(ssnEncryptor.decrypt(rs.getString("ssn")))
+                        .bio(rs.getString("bio"))
+                        .build())
+                .workInfo(WorkInfo.builder()
+                        .jobTitle(rs.getString("job_title"))
+                        .manager(rs.getString("manager"))
+                        .department(rs.getString("department"))
+                        .status(rs.getString("status"))
+                        .startDate(getLocalDate(rs, "start_date"))
+                        .employmentType(rs.getString("employment_type"))
+                        .build())
+                .preferences(Preferences.builder()
+                        .remoteEligible(rs.getBoolean("remote_eligible"))
+                        .notificationsEnabled(rs.getBoolean("notifications_enabled"))
+                        .notificationChannels(parseChannels(rs.getString("notification_channels")))
+                        .accessLevel(rs.getString("access_level"))
+                        .notes(rs.getString("notes"))
+                        .build())
+                .createdAt(getTimestamp(rs, "created_at"))
+                .updatedAt(getTimestamp(rs, "updated_at"))
+                .build();
+    }
 
     public List<Record> search(String name, String email, String department, String status,
                                 String address, int limit, int offset) {
@@ -69,7 +74,7 @@ public class RecordRepository {
                 .addValue("address", address)
                 .addValue("limit", limit)
                 .addValue("offset", offset);
-        return jdbcTemplate.query(sql, params, ROW_MAPPER);
+        return jdbcTemplate.query(sql, params, rowMapper());
     }
 
     public long count(String name, String email, String department, String status, String address) {
@@ -87,7 +92,7 @@ public class RecordRepository {
     public Optional<Record> findById(Long id) {
         String sql = sqlQueryLoader.getQuery("records", "findById");
         MapSqlParameterSource params = new MapSqlParameterSource("id", id);
-        List<Record> results = jdbcTemplate.query(sql, params, ROW_MAPPER);
+        List<Record> results = jdbcTemplate.query(sql, params, rowMapper());
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
@@ -122,7 +127,7 @@ public class RecordRepository {
                 .addValue("phone", pi.getPhone())
                 .addValue("address", pi.getAddress())
                 .addValue("dateOfBirth", pi.getDateOfBirth())
-                .addValue("ssn", pi.getSsn())
+                .addValue("ssn", ssnEncryptor.encrypt(pi.getSsn()))
                 .addValue("bio", pi.getBio())
                 .addValue("jobTitle", wi.getJobTitle())
                 .addValue("manager", wi.getManager())

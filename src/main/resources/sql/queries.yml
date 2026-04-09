@@ -35,7 +35,8 @@ records:
       department = :department, job_title = :jobTitle, employment_type = :employmentType,
       start_date = :startDate, manager = :manager, status = :status,
       remote_eligible = :remoteEligible, notifications_enabled = :notificationsEnabled,
-      notification_channels = :notificationChannels, access_level = :accessLevel, notes = :notes
+      notification_channels = :notificationChannels, access_level = :accessLevel, notes = :notes,
+      updated_at = CURRENT_TIMESTAMP
     WHERE id = :id
   delete: >
     DELETE FROM records WHERE id = :id
@@ -43,20 +44,34 @@ records:
 emergencyContacts:
   findByRecordId: >
     SELECT * FROM emergency_contacts WHERE record_id = :recordId ORDER BY is_primary DESC, id ASC
+  findByRecordIds: >
+    SELECT * FROM emergency_contacts WHERE record_id IN (:recordIds) ORDER BY is_primary DESC, id ASC
   insert: >
     INSERT INTO emergency_contacts (record_id, name, relationship, phone, email, is_primary)
     VALUES (:recordId, :name, :relationship, :phone, :email, :isPrimary)
+  update: >
+    UPDATE emergency_contacts SET name = :name, relationship = :relationship, phone = :phone,
+    email = :email, is_primary = :isPrimary WHERE id = :id AND record_id = :recordId
   deleteByRecordId: >
     DELETE FROM emergency_contacts WHERE record_id = :recordId
+  deleteByIds: >
+    DELETE FROM emergency_contacts WHERE record_id = :recordId AND id NOT IN (:ids)
 
 certifications:
   findByRecordId: >
     SELECT * FROM certifications WHERE record_id = :recordId ORDER BY issue_date DESC
+  findByRecordIds: >
+    SELECT * FROM certifications WHERE record_id IN (:recordIds) ORDER BY issue_date DESC
   insert: >
     INSERT INTO certifications (record_id, name, issuing_body, issue_date, expiry_date, credential_id)
     VALUES (:recordId, :name, :issuingBody, :issueDate, :expiryDate, :credentialId)
+  update: >
+    UPDATE certifications SET name = :name, issuing_body = :issuingBody, issue_date = :issueDate,
+    expiry_date = :expiryDate, credential_id = :credentialId WHERE id = :id AND record_id = :recordId
   deleteByRecordId: >
     DELETE FROM certifications WHERE record_id = :recordId
+  deleteByIds: >
+    DELETE FROM certifications WHERE record_id = :recordId AND id NOT IN (:ids)
 
 lookups:
   findDepartments: >

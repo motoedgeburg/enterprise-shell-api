@@ -76,8 +76,8 @@ class RecordServiceTest {
         when(recordRepository.search(any(), any(), any(), any(), any(), eq(10), eq(0)))
                 .thenReturn(List.of(record));
         when(recordRepository.count(any(), any(), any(), any(), any())).thenReturn(1L);
-        when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
-        when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+        when(emergencyContactRepository.findByRecordIds(List.of(1L))).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordIds(List.of(1L))).thenReturn(Collections.emptyList());
 
         PagedResponse<Record> result = recordService.search(null, null, null, null, null, 0, 10);
 
@@ -143,8 +143,7 @@ class RecordServiceTest {
 
         Record result = recordService.update(1L, request);
 
-        verify(emergencyContactRepository).deleteByRecordId(1L);
-        verify(certificationRepository).deleteByRecordId(1L);
+        verify(recordRepository).update(eq(1L), any(Record.class));
     }
 
     @Test

@@ -5,7 +5,7 @@ A reference architecture Spring Boot backend for enterprise applications. This i
 ## Tech Stack
 
 - **Java 21**, **Spring Boot 3.5.x**, **Gradle** (Groovy DSL)
-- **Spring Security** with Okta JWT validation via userinfo endpoint
+- **Spring Security** with Okta JWT validation via local JWKS signature verification
 - **Spring JDBC** (JdbcTemplate / NamedParameterJdbcTemplate) — no JPA/ORM
 - **Flyway** for database migrations
 - **MySQL** (production/local) / **H2** (tests)
@@ -34,6 +34,7 @@ export DB_USERNAME=root
 export DB_PASSWORD=root
 export OKTA_ISSUER=https://your-domain.okta.com/oauth2/default
 export OKTA_CLIENT_ID=your-client-id
+export SSN_ENCRYPTION_KEY=your-32-char-hex-key  # 256-bit AES key in hex
 ```
 
 ### 3. Run the application
@@ -103,14 +104,14 @@ All queries use **named parameters** (`:id`, `:name`) with `NamedParameterJdbcTe
 
 ## Authentication
 
-Authentication uses **Okta JWT validation via the userinfo endpoint**. This matches the existing production pattern (not spring-security-oauth2-resource-server).
+Authentication uses **Okta JWT validation via local JWKS signature verification**. The filter fetches the signing keys from Okta's `/v1/keys` endpoint, caches them for 1 hour, and validates JWT signatures locally — no per-request network calls.
 
 ### How it works
 
 1. Client sends `Authorization: Bearer <token>` header
 2. `OktaJwtAuthenticationFilter` extracts the token
-3. Filter calls `GET https://{okta.issuer}/v1/userinfo` with the bearer token
-4. On success: user's email and groups are extracted, authentication is set in `SecurityContextHolder`
+3. Filter validates the JWT signature locally using cached JWKS public keys from `{okta.issuer}/v1/keys`
+4. On success: user's email and groups are extracted from the JWT claims, authentication is set in `SecurityContextHolder`
 5. On failure: 401 JSON error response
 
 ### Public endpoints (no auth required)
@@ -134,7 +135,7 @@ okta:
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/lookups` | Get all lookup values as `{ value, label }` objects |
-| GET | `/api/records?page=0&size=10&name=&email=&department=&status=&address=` | Search/list records (paginated) |
+| GET | `/api/records?page=0&size=10&name=&email=&department=&status=&address=` | Search/list records (paginated, max 100 per page) |
 | GET | `/api/records/{id}` | Get a single record with all nested objects |
 | POST | `/api/records` | Create a new record |
 | PUT | `/api/records/{id}` | Update an existing record |
@@ -191,11 +192,14 @@ Records use a nested object model matching UI sections:
       "credentialId": "AWS-12345"
     }
   ],
-  "createdAt": "2024-01-15T10:30:00"
+  "createdAt": "2024-01-15T10:30:00",
+  "updatedAt": "2024-01-16T14:22:00"
 }
 ```
 
-The request body for POST/PUT uses the same nested structure via `personalInfo`, `workInfo`, `preferences`, `emergencyContacts`, and `certifications` sections.
+The request body for POST/PUT uses the same nested structure via `personalInfo`, `workInfo`, `preferences`, `emergencyContacts`, and `certifications` sections. For updates, pass the `id` on existing emergency contacts and certifications to preserve them — items without an `id` are created as new, and items removed from the array are deleted.
+
+**Note:** The `ssn` field is encrypted at rest (AES-256-GCM) and masked in API responses (`***-**-1234`). Full SSN values are accepted on create/update but never returned.
 
 ### Lookups response
 
@@ -229,13 +233,29 @@ All errors use a consistent shape:
 
 The `errors` array is only present for validation errors (400).
 
+## Security
+
+### SSN Encryption
+
+SSN values are encrypted at rest using AES-256-GCM via `SsnEncryptor`. The encryption key is configured via the `SSN_ENCRYPTION_KEY` environment variable (32-character hex string = 256-bit key). A default key is used in development — **always set a unique key in production**.
+
+- **On write**: plain SSN is encrypted before storing in the database
+- **On read**: encrypted SSN is decrypted in the repository, then masked (`***-**-1234`) in the service layer before reaching the API response
+- **Backwards compatible**: if decryption fails (e.g., pre-existing plain-text data), the value is returned as-is
+
+### Pagination Limits
+
+Search endpoints enforce bounds on pagination parameters:
+- `page` is clamped to a minimum of 0
+- `size` is clamped between 1 and 100
+
 ## How to Add a New Endpoint (End-to-End)
 
 Follow this order. Each layer builds on the previous one.
 
 ### 1. Migration
 
-Create `src/main/resources/db/migration/V6__create_your_table.sql` with your schema.
+Create `src/main/resources/db/migration/V7__create_your_table.sql` with your schema (next available version number).
 
 ### 2. Model
 

@@ -5,6 +5,7 @@ import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
 import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.util.SqlQueryLoader;
+import com.enterprise.shellapi.util.SsnEncryptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
 @ActiveProfiles("test")
-@Import(SqlQueryLoader.class)
+@Import({SqlQueryLoader.class, SsnEncryptor.class})
 class RecordRepositoryTest {
 
     @Autowired
@@ -30,11 +31,14 @@ class RecordRepositoryTest {
     @Autowired
     private SqlQueryLoader sqlQueryLoader;
 
+    @Autowired
+    private SsnEncryptor ssnEncryptor;
+
     private RecordRepository recordRepository;
 
     @BeforeEach
     void setUp() {
-        recordRepository = new RecordRepository(jdbcTemplate, sqlQueryLoader);
+        recordRepository = new RecordRepository(jdbcTemplate, sqlQueryLoader, ssnEncryptor);
     }
 
     private Record buildRecord(String name, String email) {

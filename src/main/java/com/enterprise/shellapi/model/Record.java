@@ -21,4 +21,5 @@ public class Record {
     private List<EmergencyContact> emergencyContacts;
     private List<Certification> certifications;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

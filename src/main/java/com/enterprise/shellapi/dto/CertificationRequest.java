@@ -1,6 +1,7 @@
 package com.enterprise.shellapi.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,11 +15,17 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class CertificationRequest {
 
+    private Long id;
+
     @NotBlank(message = "Certification name is required")
     private String name;
 
+    @NotBlank(message = "Issuing body is required")
     private String issuingBody;
+
+    @NotNull(message = "Issue date is required")
     private LocalDate issueDate;
+
     private LocalDate expiryDate;
     private String credentialId;
 }
