@@ -20,5 +20,5 @@ CREATE TABLE records (
     notes                 TEXT,
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    UNIQUE KEY uk_records_email (email)
+    CONSTRAINT uk_records_email UNIQUE (email)
 );

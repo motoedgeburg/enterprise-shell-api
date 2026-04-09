@@ -13,10 +13,10 @@ import java.util.List;
 @AllArgsConstructor
 public class LookupsResponse {
 
-    private List<String> departments;
-    private List<String> relationships;
-    private List<String> statuses;
-    private List<String> employmentTypes;
-    private List<String> notificationChannels;
-    private List<String> accessLevels;
+    private List<LookupOption> departments;
+    private List<LookupOption> relationships;
+    private List<LookupOption> statuses;
+    private List<LookupOption> employmentTypes;
+    private List<LookupOption> notificationChannels;
+    private List<LookupOption> accessLevels;
 }

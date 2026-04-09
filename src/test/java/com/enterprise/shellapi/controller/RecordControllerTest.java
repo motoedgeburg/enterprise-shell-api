@@ -8,11 +8,18 @@ import com.enterprise.shellapi.model.Record;
 import com.enterprise.shellapi.service.RecordService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import com.enterprise.shellapi.config.CorsConfig;
+import com.enterprise.shellapi.config.JwtConfig;
+import com.enterprise.shellapi.config.SecurityConfig;
+import com.enterprise.shellapi.filter.OktaJwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -26,9 +33,11 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(RecordController.class)
+@WebMvcTest(controllers = RecordController.class,
+        excludeAutoConfiguration = {SecurityAutoConfiguration.class, SecurityFilterAutoConfiguration.class},
+        excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
+                classes = {SecurityConfig.class, OktaJwtAuthenticationFilter.class, JwtConfig.class, CorsConfig.class}))
 @Import(GlobalExceptionHandler.class)
-@WithMockUser
 class RecordControllerTest {
 
     @Autowired

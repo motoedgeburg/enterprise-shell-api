@@ -61,6 +61,10 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+bootRun {
+    systemProperty 'spring.profiles.active', System.getProperty('spring.profiles.active', 'local')
+}
+
 tasks.named('test') {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
