@@ -61,6 +61,13 @@ class RecordRepositoryTest {
     }
 
     @Test
+    void search_returnsUuidNotId() {
+        List<Record> records = recordRepository.search(null, null, null, null, null, 1, 0);
+        assertThat(records).isNotEmpty();
+        assertThat(records.get(0).getUuid()).isNotNull().isNotBlank();
+    }
+
+    @Test
     void search_byName_filtersCorrectly() {
         List<Record> records = recordRepository.search("Alice", null, null, null, null, 10, 0);
         assertThat(records).allSatisfy(r ->
@@ -81,7 +88,7 @@ class RecordRepositoryTest {
 
         assertThat(page1).hasSize(3);
         assertThat(page2).isNotEmpty();
-        assertThat(page1.get(0).getId()).isNotEqualTo(page2.get(0).getId());
+        assertThat(page1.get(0).getUuid()).isNotEqualTo(page2.get(0).getUuid());
     }
 
     @Test
@@ -95,6 +102,7 @@ class RecordRepositoryTest {
         Optional<Record> result = recordRepository.findById(1L);
         assertThat(result).isPresent();
         assertThat(result.get().getPersonalInfo().getName()).isEqualTo("Alice Johnson");
+        assertThat(result.get().getUuid()).isNotNull();
     }
 
     @Test
@@ -104,7 +112,25 @@ class RecordRepositoryTest {
     }
 
     @Test
-    void insert_createsNewRecord() {
+    void findByUuid_existingRecord_returnsRecord() {
+        // Get a uuid from a seeded record first
+        Optional<Record> byId = recordRepository.findById(1L);
+        assertThat(byId).isPresent();
+        String uuid = byId.get().getUuid();
+
+        Optional<Record> result = recordRepository.findByUuid(uuid);
+        assertThat(result).isPresent();
+        assertThat(result.get().getPersonalInfo().getName()).isEqualTo("Alice Johnson");
+    }
+
+    @Test
+    void findByUuid_nonExistingRecord_returnsEmpty() {
+        Optional<Record> result = recordRepository.findByUuid("nonexistent-uuid");
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void insert_createsNewRecordWithUuid() {
         Record record = Record.builder()
                 .personalInfo(PersonalInfo.builder()
                         .name("Test Person")
@@ -129,10 +155,16 @@ class RecordRepositoryTest {
         Optional<Record> saved = recordRepository.findById(id);
         assertThat(saved).isPresent();
         assertThat(saved.get().getPersonalInfo().getName()).isEqualTo("Test Person");
+        assertThat(saved.get().getUuid()).isNotNull().isNotBlank();
     }
 
     @Test
     void update_modifiesRecord() {
+        // Get the uuid of an existing record
+        Optional<Record> existing = recordRepository.findById(1L);
+        assertThat(existing).isPresent();
+        String uuid = existing.get().getUuid();
+
         Record record = Record.builder()
                 .personalInfo(PersonalInfo.builder()
                         .name("Updated Name")
@@ -148,10 +180,10 @@ class RecordRepositoryTest {
                         .build())
                 .build();
 
-        int rows = recordRepository.update(1L, record);
+        int rows = recordRepository.update(uuid, record);
 
         assertThat(rows).isEqualTo(1);
-        Optional<Record> updated = recordRepository.findById(1L);
+        Optional<Record> updated = recordRepository.findByUuid(uuid);
         assertThat(updated).isPresent();
         assertThat(updated.get().getPersonalInfo().getName()).isEqualTo("Updated Name");
         assertThat(updated.get().getPreferences().getAccessLevel()).isEqualTo("elevated");
@@ -162,9 +194,13 @@ class RecordRepositoryTest {
         Record record = buildRecord("To Delete", "delete-me@test.com");
         Long id = recordRepository.insert(record);
 
-        int rows = recordRepository.delete(id);
+        Optional<Record> saved = recordRepository.findById(id);
+        assertThat(saved).isPresent();
+        String uuid = saved.get().getUuid();
+
+        int rows = recordRepository.delete(uuid);
 
         assertThat(rows).isEqualTo(1);
-        assertThat(recordRepository.findById(id)).isEmpty();
+        assertThat(recordRepository.findByUuid(uuid)).isEmpty();
     }
 }

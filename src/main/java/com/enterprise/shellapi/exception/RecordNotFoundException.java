@@ -5,4 +5,8 @@ public class RecordNotFoundException extends RuntimeException {
     public RecordNotFoundException(Long id) {
         super("Record not found with id: " + id);
     }
+
+    public RecordNotFoundException(String uuid) {
+        super("Record not found: " + uuid);
+    }
 }

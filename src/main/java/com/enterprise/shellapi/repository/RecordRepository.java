@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -34,6 +35,7 @@ public class RecordRepository {
     private RowMapper<Record> rowMapper() {
         return (rs, rowNum) -> Record.builder()
                 .id(rs.getLong("id"))
+                .uuid(rs.getString("uuid"))
                 .personalInfo(PersonalInfo.builder()
                         .name(rs.getString("name"))
                         .email(rs.getString("email"))
@@ -96,24 +98,32 @@ public class RecordRepository {
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
     }
 
+    public Optional<Record> findByUuid(String uuid) {
+        String sql = sqlQueryLoader.getQuery("records", "findByUuid");
+        MapSqlParameterSource params = new MapSqlParameterSource("uuid", uuid);
+        List<Record> results = jdbcTemplate.query(sql, params, rowMapper());
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
+    }
+
     public Long insert(Record record) {
         String sql = sqlQueryLoader.getQuery("records", "insert");
         MapSqlParameterSource params = buildParams(record);
+        params.addValue("uuid", UUID.randomUUID().toString());
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder, new String[]{"id"});
         return keyHolder.getKey().longValue();
     }
 
-    public int update(Long id, Record record) {
+    public int update(String uuid, Record record) {
         String sql = sqlQueryLoader.getQuery("records", "update");
         MapSqlParameterSource params = buildParams(record);
-        params.addValue("id", id);
+        params.addValue("uuid", uuid);
         return jdbcTemplate.update(sql, params);
     }
 
-    public int delete(Long id) {
+    public int delete(String uuid) {
         String sql = sqlQueryLoader.getQuery("records", "delete");
-        return jdbcTemplate.update(sql, new MapSqlParameterSource("id", id));
+        return jdbcTemplate.update(sql, new MapSqlParameterSource("uuid", uuid));
     }
 
     private MapSqlParameterSource buildParams(Record record) {

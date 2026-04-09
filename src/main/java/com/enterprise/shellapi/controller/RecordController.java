@@ -29,9 +29,9 @@ public class RecordController {
         return ResponseEntity.ok(recordService.search(name, email, department, status, address, page, size));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Record> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(recordService.findById(id));
+    @GetMapping("/{uuid}")
+    public ResponseEntity<Record> findByUuid(@PathVariable String uuid) {
+        return ResponseEntity.ok(recordService.findByUuid(uuid));
     }
 
     @PostMapping
@@ -40,14 +40,14 @@ public class RecordController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Record> update(@PathVariable Long id, @Valid @RequestBody RecordRequest request) {
-        return ResponseEntity.ok(recordService.update(id, request));
+    @PutMapping("/{uuid}")
+    public ResponseEntity<Record> update(@PathVariable String uuid, @Valid @RequestBody RecordRequest request) {
+        return ResponseEntity.ok(recordService.update(uuid, request));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        recordService.delete(id);
+    @DeleteMapping("/{uuid}")
+    public ResponseEntity<Void> delete(@PathVariable String uuid) {
+        recordService.delete(uuid);
         return ResponseEntity.noContent().build();
     }
 }

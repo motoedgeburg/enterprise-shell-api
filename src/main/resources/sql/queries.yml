@@ -5,6 +5,8 @@ records:
     LIMIT :limit OFFSET :offset
   findById: >
     SELECT * FROM records WHERE id = :id
+  findByUuid: >
+    SELECT * FROM records WHERE uuid = :uuid
   search: >
     SELECT * FROM records
     WHERE (:name IS NULL OR LOWER(name) LIKE LOWER(CONCAT('%', :name, '%')))
@@ -22,10 +24,10 @@ records:
     AND (:status IS NULL OR status = :status)
     AND (:address IS NULL OR LOWER(address) LIKE LOWER(CONCAT('%', :address, '%')))
   insert: >
-    INSERT INTO records (name, email, phone, address, date_of_birth, ssn, bio,
+    INSERT INTO records (uuid, name, email, phone, address, date_of_birth, ssn, bio,
       department, job_title, employment_type, start_date, manager, status,
       remote_eligible, notifications_enabled, notification_channels, access_level, notes)
-    VALUES (:name, :email, :phone, :address, :dateOfBirth, :ssn, :bio,
+    VALUES (:uuid, :name, :email, :phone, :address, :dateOfBirth, :ssn, :bio,
       :department, :jobTitle, :employmentType, :startDate, :manager, :status,
       :remoteEligible, :notificationsEnabled, :notificationChannels, :accessLevel, :notes)
   update: >
@@ -37,9 +39,9 @@ records:
       remote_eligible = :remoteEligible, notifications_enabled = :notificationsEnabled,
       notification_channels = :notificationChannels, access_level = :accessLevel, notes = :notes,
       updated_at = CURRENT_TIMESTAMP
-    WHERE id = :id
+    WHERE uuid = :uuid
   delete: >
-    DELETE FROM records WHERE id = :id
+    DELETE FROM records WHERE uuid = :uuid
 
 emergencyContacts:
   findByRecordId: >

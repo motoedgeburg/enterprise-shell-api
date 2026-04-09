@@ -1,5 +1,6 @@
 package com.enterprise.shellapi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,7 +15,10 @@ import java.util.List;
 @AllArgsConstructor
 public class Record {
 
+    @JsonIgnore
     private Long id;
+
+    private String uuid;
     private PersonalInfo personalInfo;
     private WorkInfo workInfo;
     private Preferences preferences;

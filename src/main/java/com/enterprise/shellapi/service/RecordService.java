@@ -62,9 +62,9 @@ public class RecordService {
                 .build();
     }
 
-    public Record findById(Long id) {
-        Record record = recordRepository.findById(id)
-                .orElseThrow(() -> new RecordNotFoundException(id));
+    public Record findByUuid(String uuid) {
+        Record record = recordRepository.findByUuid(uuid)
+                .orElseThrow(() -> new RecordNotFoundException(uuid));
         loadRelations(record);
         maskSsn(record);
         return record;
@@ -75,28 +75,33 @@ public class RecordService {
         Record record = mapToRecord(request);
         Long id = recordRepository.insert(record);
         saveRelations(id, request);
-        return findById(id);
+        Record saved = recordRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("Record not found after insert"));
+        loadRelations(saved);
+        maskSsn(saved);
+        return saved;
     }
 
     @Transactional
-    public Record update(Long id, RecordRequest request) {
-        recordRepository.findById(id)
-                .orElseThrow(() -> new RecordNotFoundException(id));
+    public Record update(String uuid, RecordRequest request) {
+        Record existing = recordRepository.findByUuid(uuid)
+                .orElseThrow(() -> new RecordNotFoundException(uuid));
 
         Record record = mapToRecord(request);
-        recordRepository.update(id, record);
+        recordRepository.update(uuid, record);
 
-        syncEmergencyContacts(id, request.getEmergencyContacts());
-        syncCertifications(id, request.getCertifications());
+        Long internalId = existing.getId();
+        syncEmergencyContacts(internalId, request.getEmergencyContacts());
+        syncCertifications(internalId, request.getCertifications());
 
-        return findById(id);
+        return findByUuid(uuid);
     }
 
     @Transactional
-    public void delete(Long id) {
-        recordRepository.findById(id)
-                .orElseThrow(() -> new RecordNotFoundException(id));
-        recordRepository.delete(id);
+    public void delete(String uuid) {
+        recordRepository.findByUuid(uuid)
+                .orElseThrow(() -> new RecordNotFoundException(uuid));
+        recordRepository.delete(uuid);
     }
 
     private void loadRelations(Record record) {
