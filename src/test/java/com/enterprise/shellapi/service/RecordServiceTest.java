@@ -41,6 +41,9 @@ class RecordServiceTest {
     @Mock
     private CertificationRepository certificationRepository;
 
+    @Mock
+    private RecordRequestValidator validator;
+
     @InjectMocks
     private RecordService recordService;
 

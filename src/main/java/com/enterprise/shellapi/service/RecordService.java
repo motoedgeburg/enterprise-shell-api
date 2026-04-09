@@ -32,6 +32,7 @@ public class RecordService {
     private final RecordRepository recordRepository;
     private final EmergencyContactRepository emergencyContactRepository;
     private final CertificationRepository certificationRepository;
+    private final RecordRequestValidator validator;
 
     public List<RecordSummary> search(String name, String email, String department,
                                        String status, String address) {
@@ -50,6 +51,7 @@ public class RecordService {
 
     @Transactional
     public Record create(RecordRequest request) {
+        validator.validate(request);
         Record record = mapToRecord(request);
         Long id = recordRepository.insert(record);
         saveRelations(id, request);
@@ -62,6 +64,7 @@ public class RecordService {
 
     @Transactional
     public Record update(String uuid, RecordRequest request) {
+        validator.validate(request);
         Record existing = recordRepository.findByUuid(uuid)
                 .orElseThrow(() -> new RecordNotFoundException(uuid));
 

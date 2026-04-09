@@ -1,11 +1,14 @@
 package com.enterprise.shellapi.controller;
 
+import com.enterprise.shellapi.dto.ErrorResponse;
 import com.enterprise.shellapi.dto.PersonalInfoRequest;
+import com.enterprise.shellapi.dto.PreferencesRequest;
 import com.enterprise.shellapi.dto.RecordRequest;
 import com.enterprise.shellapi.dto.RecordSummary;
 import com.enterprise.shellapi.dto.WorkInfoRequest;
 import com.enterprise.shellapi.exception.GlobalExceptionHandler;
 import com.enterprise.shellapi.exception.RecordNotFoundException;
+import com.enterprise.shellapi.exception.ValidationException;
 import com.enterprise.shellapi.model.PersonalInfo;
 import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
@@ -245,5 +248,113 @@ class RecordControllerTest {
 
         mockMvc.perform(delete("/api/records/" + badUuid))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void create_invalidPhone_returns400() throws Exception {
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder()
+                        .name("Test").email("test@company.com").phone("12345").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Engineer").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .build();
+
+        mockMvc.perform(post("/api/records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("personalInfo.phone"));
+    }
+
+    @Test
+    void create_invalidSsn_returns400() throws Exception {
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder()
+                        .name("Test").email("test@company.com").ssn("12345").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Engineer").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .build();
+
+        mockMvc.perform(post("/api/records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("personalInfo.ssn"));
+    }
+
+    @Test
+    void create_invalidLookupValue_returns400() throws Exception {
+        RecordRequest request = buildRequest("Test", "test@company.com");
+
+        when(recordService.create(any(RecordRequest.class)))
+                .thenThrow(new ValidationException(List.of(
+                        ErrorResponse.FieldError.builder()
+                                .field("workInfo.department")
+                                .message("Must be one of: Engineering, Product, Design")
+                                .build())));
+
+        mockMvc.perform(post("/api/records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("workInfo.department"));
+    }
+
+    @Test
+    void create_bioTooLong_returns400() throws Exception {
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder()
+                        .name("Test").email("test@company.com")
+                        .bio("x".repeat(501)).build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Engineer").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .build();
+
+        mockMvc.perform(post("/api/records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("personalInfo.bio"));
+    }
+
+    @Test
+    void create_addressTooShort_returns400() throws Exception {
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder()
+                        .name("Test").email("test@company.com")
+                        .address("abc").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Engineer").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .build();
+
+        mockMvc.perform(post("/api/records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("personalInfo.address"));
+    }
+
+    @Test
+    void create_notesTooLong_returns400() throws Exception {
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder()
+                        .name("Test").email("test@company.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Engineer").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .preferences(PreferencesRequest.builder()
+                        .accessLevel("standard")
+                        .notes("x".repeat(1001)).build())
+                .build();
+
+        mockMvc.perform(post("/api/records")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("preferences.notes"));
     }
 }

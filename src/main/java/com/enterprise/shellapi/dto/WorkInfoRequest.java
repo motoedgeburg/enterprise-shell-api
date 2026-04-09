@@ -1,6 +1,7 @@
 package com.enterprise.shellapi.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Past;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,6 +26,7 @@ public class WorkInfoRequest {
     @NotBlank(message = "Status is required")
     private String status;
 
+    @Past(message = "Start date must be a past date")
     private LocalDate startDate;
 
     @NotBlank(message = "Employment type is required")
