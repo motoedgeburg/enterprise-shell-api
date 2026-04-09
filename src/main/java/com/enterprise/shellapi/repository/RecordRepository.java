@@ -1,11 +1,12 @@
 package com.enterprise.shellapi.repository;
 
+import com.enterprise.shellapi.dto.RecordSummary;
 import com.enterprise.shellapi.model.PersonalInfo;
 import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
 import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.util.SqlQueryLoader;
-import com.enterprise.shellapi.util.SsnEncryptor;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -30,7 +31,6 @@ public class RecordRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final SqlQueryLoader sqlQueryLoader;
-    private final SsnEncryptor ssnEncryptor;
 
     private RowMapper<Record> rowMapper() {
         return (rs, rowNum) -> Record.builder()
@@ -42,7 +42,7 @@ public class RecordRepository {
                         .phone(rs.getString("phone"))
                         .address(rs.getString("address"))
                         .dateOfBirth(getLocalDate(rs, "date_of_birth"))
-                        .ssn(ssnEncryptor.decrypt(rs.getString("ssn")))
+                        .ssn(rs.getString("ssn"))
                         .bio(rs.getString("bio"))
                         .build())
                 .workInfo(WorkInfo.builder()
@@ -65,30 +65,22 @@ public class RecordRepository {
                 .build();
     }
 
-    public List<Record> search(String name, String email, String department, String status,
-                                String address, int limit, int offset) {
+    public List<RecordSummary> search(String name, String email, String department,
+                                       String status, String address) {
         String sql = sqlQueryLoader.getQuery("records", "search");
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", name)
                 .addValue("email", email)
                 .addValue("department", department)
                 .addValue("status", status)
-                .addValue("address", address)
-                .addValue("limit", limit)
-                .addValue("offset", offset);
-        return jdbcTemplate.query(sql, params, rowMapper());
-    }
-
-    public long count(String name, String email, String department, String status, String address) {
-        String sql = sqlQueryLoader.getQuery("records", "count");
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("name", name)
-                .addValue("email", email)
-                .addValue("department", department)
-                .addValue("status", status)
                 .addValue("address", address);
-        Long count = jdbcTemplate.queryForObject(sql, params, Long.class);
-        return count != null ? count : 0;
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> RecordSummary.builder()
+                .uuid(rs.getString("uuid"))
+                .name(rs.getString("name"))
+                .address(rs.getString("address"))
+                .department(rs.getString("department"))
+                .status(rs.getString("status"))
+                .build());
     }
 
     public Optional<Record> findById(Long id) {
@@ -137,7 +129,7 @@ public class RecordRepository {
                 .addValue("phone", pi.getPhone())
                 .addValue("address", pi.getAddress())
                 .addValue("dateOfBirth", pi.getDateOfBirth())
-                .addValue("ssn", ssnEncryptor.encrypt(pi.getSsn()))
+                .addValue("ssn", pi.getSsn())
                 .addValue("bio", pi.getBio())
                 .addValue("jobTitle", wi.getJobTitle())
                 .addValue("manager", wi.getManager())

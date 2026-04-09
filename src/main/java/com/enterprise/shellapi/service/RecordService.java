@@ -1,6 +1,12 @@
 package com.enterprise.shellapi.service;
 
-import com.enterprise.shellapi.dto.*;
+import com.enterprise.shellapi.dto.CertificationRequest;
+import com.enterprise.shellapi.dto.EmergencyContactRequest;
+import com.enterprise.shellapi.dto.PersonalInfoRequest;
+import com.enterprise.shellapi.dto.PreferencesRequest;
+import com.enterprise.shellapi.dto.RecordRequest;
+import com.enterprise.shellapi.dto.RecordSummary;
+import com.enterprise.shellapi.dto.WorkInfoRequest;
 import com.enterprise.shellapi.exception.RecordNotFoundException;
 import com.enterprise.shellapi.model.Certification;
 import com.enterprise.shellapi.model.EmergencyContact;
@@ -11,62 +17,34 @@ import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.repository.CertificationRepository;
 import com.enterprise.shellapi.repository.EmergencyContactRepository;
 import com.enterprise.shellapi.repository.RecordRepository;
-import com.enterprise.shellapi.util.SsnEncryptor;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class RecordService {
 
-    private static final int MAX_PAGE_SIZE = 100;
-
     private final RecordRepository recordRepository;
     private final EmergencyContactRepository emergencyContactRepository;
     private final CertificationRepository certificationRepository;
 
-    public PagedResponse<Record> search(String name, String email, String department,
-                                         String status, String address, int page, int size) {
-        page = Math.max(page, 0);
-        size = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
-        int offset = page * size;
-
-        String nameParam = blankToNull(name);
-        String emailParam = blankToNull(email);
-        String deptParam = blankToNull(department);
-        String statusParam = blankToNull(status);
-        String addressParam = blankToNull(address);
-
-        List<Record> records = recordRepository.search(nameParam, emailParam, deptParam,
-                statusParam, addressParam, size, offset);
-        long total = recordRepository.count(nameParam, emailParam, deptParam, statusParam, addressParam);
-
-        loadRelationsBatch(records);
-        records.forEach(this::maskSsn);
-
-        int totalPages = size > 0 ? (int) Math.ceil((double) total / size) : 0;
-
-        return PagedResponse.<Record>builder()
-                .content(records)
-                .totalElements(total)
-                .totalPages(totalPages)
-                .size(size)
-                .number(page)
-                .build();
+    public List<RecordSummary> search(String name, String email, String department,
+                                       String status, String address) {
+        return recordRepository.search(
+                blankToNull(name), blankToNull(email), blankToNull(department),
+                blankToNull(status), blankToNull(address));
     }
 
     public Record findByUuid(String uuid) {
         Record record = recordRepository.findByUuid(uuid)
                 .orElseThrow(() -> new RecordNotFoundException(uuid));
         loadRelations(record);
-        maskSsn(record);
+
         return record;
     }
 
@@ -78,7 +56,7 @@ public class RecordService {
         Record saved = recordRepository.findById(id)
                 .orElseThrow(() -> new IllegalStateException("Record not found after insert"));
         loadRelations(saved);
-        maskSsn(saved);
+
         return saved;
     }
 
@@ -107,23 +85,6 @@ public class RecordService {
     private void loadRelations(Record record) {
         record.setEmergencyContacts(emergencyContactRepository.findByRecordId(record.getId()));
         record.setCertifications(certificationRepository.findByRecordId(record.getId()));
-    }
-
-    private void loadRelationsBatch(List<Record> records) {
-        if (records.isEmpty()) return;
-
-        List<Long> ids = records.stream().map(Record::getId).toList();
-
-        Map<Long, List<EmergencyContact>> contactsByRecordId = emergencyContactRepository.findByRecordIds(ids)
-                .stream().collect(Collectors.groupingBy(EmergencyContact::getRecordId));
-
-        Map<Long, List<Certification>> certsByRecordId = certificationRepository.findByRecordIds(ids)
-                .stream().collect(Collectors.groupingBy(Certification::getRecordId));
-
-        for (Record record : records) {
-            record.setEmergencyContacts(contactsByRecordId.getOrDefault(record.getId(), Collections.emptyList()));
-            record.setCertifications(certsByRecordId.getOrDefault(record.getId(), Collections.emptyList()));
-        }
     }
 
     private void saveRelations(Long recordId, RecordRequest request) {
@@ -250,12 +211,6 @@ public class RecordService {
                         .accessLevel("standard")
                         .build())
                 .build();
-    }
-
-    private void maskSsn(Record record) {
-        if (record.getPersonalInfo() != null) {
-            record.getPersonalInfo().setSsn(SsnEncryptor.mask(record.getPersonalInfo().getSsn()));
-        }
     }
 
     private String blankToNull(String value) {

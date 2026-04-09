@@ -1,8 +1,8 @@
 package com.enterprise.shellapi.service;
 
-import com.enterprise.shellapi.dto.PagedResponse;
 import com.enterprise.shellapi.dto.PersonalInfoRequest;
 import com.enterprise.shellapi.dto.RecordRequest;
+import com.enterprise.shellapi.dto.RecordSummary;
 import com.enterprise.shellapi.dto.WorkInfoRequest;
 import com.enterprise.shellapi.exception.RecordNotFoundException;
 import com.enterprise.shellapi.model.Certification;
@@ -74,20 +74,17 @@ class RecordServiceTest {
     }
 
     @Test
-    void search_returnsPagedResponse() {
-        Record record = buildRecord(1L, TEST_UUID, "Alice", "alice@test.com");
-        when(recordRepository.search(any(), any(), any(), any(), any(), eq(10), eq(0)))
-                .thenReturn(List.of(record));
-        when(recordRepository.count(any(), any(), any(), any(), any())).thenReturn(1L);
-        when(emergencyContactRepository.findByRecordIds(List.of(1L))).thenReturn(Collections.emptyList());
-        when(certificationRepository.findByRecordIds(List.of(1L))).thenReturn(Collections.emptyList());
+    void search_returnsSummaryList() {
+        RecordSummary summary = RecordSummary.builder()
+                .uuid(TEST_UUID).name("Alice").department("Engineering").status("active").build();
+        when(recordRepository.search(any(), any(), any(), any(), any()))
+                .thenReturn(List.of(summary));
 
-        PagedResponse<Record> result = recordService.search(null, null, null, null, null, 0, 10);
+        List<RecordSummary> result = recordService.search(null, null, null, null, null);
 
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getUuid()).isEqualTo(TEST_UUID);
-        assertThat(result.getTotalElements()).isEqualTo(1);
-        assertThat(result.getNumber()).isZero();
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUuid()).isEqualTo(TEST_UUID);
+        assertThat(result.get(0).getName()).isEqualTo("Alice");
     }
 
     @Test

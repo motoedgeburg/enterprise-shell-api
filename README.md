@@ -34,7 +34,6 @@ export DB_USERNAME=root
 export DB_PASSWORD=root
 export OKTA_ISSUER=https://your-domain.okta.com/oauth2/default
 export OKTA_CLIENT_ID=your-client-id
-export SSN_ENCRYPTION_KEY=your-32-char-hex-key  # 256-bit AES key in hex
 ```
 
 ### 3. Run the application
@@ -89,18 +88,37 @@ com.enterprise.shellapi
 
 ```java
 // In a repository class:
-String sql = sqlQueryLoader.getQuery("records", "findById");
+String sql = sqlQueryLoader.getQuery("records", "findByUuid");
 ```
 
 The YAML structure:
 
 ```yaml
 records:
-  findAll: "SELECT * FROM records ..."
-  findById: "SELECT * FROM records WHERE id = :id"
+  search: "SELECT uuid, name, address, department, status FROM records WHERE ..."
+  findByUuid: "SELECT * FROM records WHERE uuid = :uuid"
+  insert: "INSERT INTO records (uuid, name, email, ...) VALUES (:uuid, :name, :email, ...)"
 ```
 
-All queries use **named parameters** (`:id`, `:name`) with `NamedParameterJdbcTemplate`.
+All queries use **named parameters** (`:uuid`, `:name`) with `NamedParameterJdbcTemplate`.
+
+## Database Migrations
+
+Schema changes are managed by **Flyway**. Migration files live in `src/main/resources/db/migration/` and follow the naming convention `V{number}__{description}.sql`.
+
+Current migrations:
+
+| Version | Description |
+|---------|-------------|
+| V1 | Create records table |
+| V2 | Create emergency contacts table |
+| V3 | Create certifications table |
+| V4 | Create lookup tables (departments, statuses, etc.) |
+| V5 | Seed lookup and sample record data |
+| V6 | Add `updated_at` column and indexes |
+| V7 | Add UUID surrogate keys to records |
+
+Flyway runs automatically on startup. Migrations are applied in version order and are never modified after being applied — new changes require a new migration file.
 
 ## Authentication
 
@@ -135,26 +153,37 @@ okta:
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/lookups` | Get all lookup values as `{ value, label }` objects |
-| GET | `/api/records?page=0&size=10&name=&email=&department=&status=&address=` | Search/list records (paginated, max 100 per page) |
-| GET | `/api/records/{id}` | Get a single record with all nested objects |
+| GET | `/api/records?name=&email=&department=&status=&address=` | Search/list records (flat summaries) |
+| GET | `/api/records/{uuid}` | Get a single record with all nested objects |
 | POST | `/api/records` | Create a new record |
-| PUT | `/api/records/{id}` | Update an existing record |
-| DELETE | `/api/records/{id}` | Delete a record |
+| PUT | `/api/records/{uuid}` | Update an existing record |
+| DELETE | `/api/records/{uuid}` | Delete a record |
 
-### Record structure
+### Search response (`GET /api/records`)
 
-Records use a nested object model matching UI sections:
+Returns a flat JSON array of summary objects. All query parameters are optional filters:
+
+```json
+[
+  { "uuid": "b3a1c5d0-...", "name": "Alice Johnson", "address": "123 Main St", "department": "Engineering", "status": "active" },
+  { "uuid": "e7d4f2a1-...", "name": "Bob Martinez", "address": "456 Liberty Ave", "department": "Product", "status": "active" }
+]
+```
+
+### Detail response (`GET /api/records/{uuid}`)
+
+Returns the full nested record. The internal numeric `id` is never exposed — `uuid` is the only public identifier:
 
 ```json
 {
-  "id": 1,
+  "uuid": "b3a1c5d0-1234-5678-9abc-def012345678",
   "personalInfo": {
     "name": "Alice Johnson",
     "email": "alice@company.com",
     "phone": "(555) 123-4567",
     "address": "123 Main St",
     "dateOfBirth": "1990-03-15",
-    "ssn": "***-**-1234",
+    "ssn": "123-45-6789",
     "bio": "Senior engineer"
   },
   "workInfo": {
@@ -197,9 +226,9 @@ Records use a nested object model matching UI sections:
 }
 ```
 
-The request body for POST/PUT uses the same nested structure via `personalInfo`, `workInfo`, `preferences`, `emergencyContacts`, and `certifications` sections. For updates, pass the `id` on existing emergency contacts and certifications to preserve them — items without an `id` are created as new, and items removed from the array are deleted.
+### Create/Update request body (`POST` / `PUT /api/records/{uuid}`)
 
-**Note:** The `ssn` field is encrypted at rest (AES-256-GCM) and masked in API responses (`***-**-1234`). Full SSN values are accepted on create/update but never returned.
+The request body uses the same nested structure: `personalInfo`, `workInfo`, `preferences`, `emergencyContacts`, and `certifications`. For updates, pass the `id` on existing emergency contacts and certifications to preserve them — items without an `id` are created as new, and items removed from the array are deleted.
 
 ### Lookups response
 
@@ -222,7 +251,7 @@ All errors use a consistent shape:
 
 ```json
 {
-  "message": "Record not found with id: 999",
+  "message": "Record not found: 550e8400-e29b-41d4-a716-446655440000",
   "status": 404,
   "timestamp": "2024-01-15T10:30:00",
   "errors": [
@@ -233,29 +262,13 @@ All errors use a consistent shape:
 
 The `errors` array is only present for validation errors (400).
 
-## Security
-
-### SSN Encryption
-
-SSN values are encrypted at rest using AES-256-GCM via `SsnEncryptor`. The encryption key is configured via the `SSN_ENCRYPTION_KEY` environment variable (32-character hex string = 256-bit key). A default key is used in development — **always set a unique key in production**.
-
-- **On write**: plain SSN is encrypted before storing in the database
-- **On read**: encrypted SSN is decrypted in the repository, then masked (`***-**-1234`) in the service layer before reaching the API response
-- **Backwards compatible**: if decryption fails (e.g., pre-existing plain-text data), the value is returned as-is
-
-### Pagination Limits
-
-Search endpoints enforce bounds on pagination parameters:
-- `page` is clamped to a minimum of 0
-- `size` is clamped between 1 and 100
-
 ## How to Add a New Endpoint (End-to-End)
 
 Follow this order. Each layer builds on the previous one.
 
 ### 1. Migration
 
-Create `src/main/resources/db/migration/V7__create_your_table.sql` with your schema (next available version number).
+Create `src/main/resources/db/migration/V8__create_your_table.sql` with your schema (next available version number).
 
 ### 2. Model
 

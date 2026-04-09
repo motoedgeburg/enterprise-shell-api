@@ -1,11 +1,12 @@
 package com.enterprise.shellapi.repository;
 
+import com.enterprise.shellapi.dto.RecordSummary;
 import com.enterprise.shellapi.model.PersonalInfo;
 import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
 import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.util.SqlQueryLoader;
-import com.enterprise.shellapi.util.SsnEncryptor;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @JdbcTest
 @ActiveProfiles("test")
-@Import({SqlQueryLoader.class, SsnEncryptor.class})
+@Import(SqlQueryLoader.class)
 class RecordRepositoryTest {
 
     @Autowired
@@ -31,14 +32,11 @@ class RecordRepositoryTest {
     @Autowired
     private SqlQueryLoader sqlQueryLoader;
 
-    @Autowired
-    private SsnEncryptor ssnEncryptor;
-
     private RecordRepository recordRepository;
 
     @BeforeEach
     void setUp() {
-        recordRepository = new RecordRepository(jdbcTemplate, sqlQueryLoader, ssnEncryptor);
+        recordRepository = new RecordRepository(jdbcTemplate, sqlQueryLoader);
     }
 
     private Record buildRecord(String name, String email) {
@@ -54,47 +52,25 @@ class RecordRepositoryTest {
     }
 
     @Test
-    void search_noFilters_returnsSeededRecords() {
-        List<Record> records = recordRepository.search(null, null, null, null, null, 10, 0);
-        assertThat(records).isNotEmpty();
-        assertThat(records.size()).isLessThanOrEqualTo(10);
-    }
-
-    @Test
-    void search_returnsUuidNotId() {
-        List<Record> records = recordRepository.search(null, null, null, null, null, 1, 0);
-        assertThat(records).isNotEmpty();
-        assertThat(records.get(0).getUuid()).isNotNull().isNotBlank();
+    void search_noFilters_returnsAllSummaries() {
+        List<RecordSummary> results = recordRepository.search(null, null, null, null, null);
+        assertThat(results).isNotEmpty();
+        assertThat(results.get(0).getUuid()).isNotNull().isNotBlank();
+        assertThat(results.get(0).getName()).isNotNull();
     }
 
     @Test
     void search_byName_filtersCorrectly() {
-        List<Record> records = recordRepository.search("Alice", null, null, null, null, 10, 0);
-        assertThat(records).allSatisfy(r ->
-                assertThat(r.getPersonalInfo().getName().toLowerCase()).contains("alice"));
+        List<RecordSummary> results = recordRepository.search("Alice", null, null, null, null);
+        assertThat(results).allSatisfy(r ->
+                assertThat(r.getName().toLowerCase()).contains("alice"));
     }
 
     @Test
     void search_byDepartment_filtersCorrectly() {
-        List<Record> records = recordRepository.search(null, null, "Engineering", null, null, 10, 0);
-        assertThat(records).allSatisfy(r ->
-                assertThat(r.getWorkInfo().getDepartment()).isEqualTo("Engineering"));
-    }
-
-    @Test
-    void search_pagination_works() {
-        List<Record> page1 = recordRepository.search(null, null, null, null, null, 3, 0);
-        List<Record> page2 = recordRepository.search(null, null, null, null, null, 3, 3);
-
-        assertThat(page1).hasSize(3);
-        assertThat(page2).isNotEmpty();
-        assertThat(page1.get(0).getUuid()).isNotEqualTo(page2.get(0).getUuid());
-    }
-
-    @Test
-    void count_noFilters_returnsTotal() {
-        long count = recordRepository.count(null, null, null, null, null);
-        assertThat(count).isEqualTo(8); // 8 seeded records
+        List<RecordSummary> results = recordRepository.search(null, null, "Engineering", null, null);
+        assertThat(results).allSatisfy(r ->
+                assertThat(r.getDepartment()).isEqualTo("Engineering"));
     }
 
     @Test

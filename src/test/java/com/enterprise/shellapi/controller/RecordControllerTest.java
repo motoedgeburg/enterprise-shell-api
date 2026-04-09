@@ -1,6 +1,9 @@
 package com.enterprise.shellapi.controller;
 
-import com.enterprise.shellapi.dto.*;
+import com.enterprise.shellapi.dto.PersonalInfoRequest;
+import com.enterprise.shellapi.dto.RecordRequest;
+import com.enterprise.shellapi.dto.RecordSummary;
+import com.enterprise.shellapi.dto.WorkInfoRequest;
 import com.enterprise.shellapi.exception.GlobalExceptionHandler;
 import com.enterprise.shellapi.exception.RecordNotFoundException;
 import com.enterprise.shellapi.model.PersonalInfo;
@@ -92,29 +95,26 @@ class RecordControllerTest {
     }
 
     @Test
-    void search_returnsPagedResponse() throws Exception {
-        Record record = buildRecord(TEST_UUID, "Alice Johnson", "alice@company.com");
-
-        PagedResponse<Record> response = PagedResponse.<Record>builder()
-                .content(List.of(record))
-                .totalElements(1)
-                .totalPages(1)
-                .size(10)
-                .number(0)
+    void search_returnsSummaryList() throws Exception {
+        RecordSummary summary = RecordSummary.builder()
+                .uuid(TEST_UUID)
+                .name("Alice Johnson")
+                .address("123 Market St")
+                .department("Engineering")
+                .status("active")
                 .build();
 
-        when(recordService.search(any(), any(), any(), any(), any(), eq(0), eq(10)))
-                .thenReturn(response);
+        when(recordService.search(any(), any(), any(), any(), any()))
+                .thenReturn(List.of(summary));
 
-        mockMvc.perform(get("/api/records")
-                        .param("page", "0")
-                        .param("size", "10"))
+        mockMvc.perform(get("/api/records"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content[0].uuid").value(TEST_UUID))
-                .andExpect(jsonPath("$.content[0].personalInfo.name").value("Alice Johnson"))
-                .andExpect(jsonPath("$.content[0].id").doesNotExist())
-                .andExpect(jsonPath("$.totalElements").value(1));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].uuid").value(TEST_UUID))
+                .andExpect(jsonPath("$[0].name").value("Alice Johnson"))
+                .andExpect(jsonPath("$[0].department").value("Engineering"))
+                .andExpect(jsonPath("$[0].status").value("active"))
+                .andExpect(jsonPath("$[0].personalInfo").doesNotExist());
     }
 
     @Test
