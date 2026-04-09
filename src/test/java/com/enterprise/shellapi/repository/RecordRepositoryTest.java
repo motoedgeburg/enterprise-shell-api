@@ -1,6 +1,9 @@
 package com.enterprise.shellapi.repository;
 
+import com.enterprise.shellapi.model.PersonalInfo;
+import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
+import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.util.SqlQueryLoader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +37,18 @@ class RecordRepositoryTest {
         recordRepository = new RecordRepository(jdbcTemplate, sqlQueryLoader);
     }
 
+    private Record buildRecord(String name, String email) {
+        return Record.builder()
+                .personalInfo(PersonalInfo.builder().name(name).email(email).build())
+                .workInfo(WorkInfo.builder().status("active").build())
+                .preferences(Preferences.builder()
+                        .remoteEligible(false)
+                        .notificationsEnabled(true)
+                        .accessLevel("standard")
+                        .build())
+                .build();
+    }
+
     @Test
     void search_noFilters_returnsSeededRecords() {
         List<Record> records = recordRepository.search(null, null, null, null, null, 10, 0);
@@ -45,14 +60,14 @@ class RecordRepositoryTest {
     void search_byName_filtersCorrectly() {
         List<Record> records = recordRepository.search("Alice", null, null, null, null, 10, 0);
         assertThat(records).allSatisfy(r ->
-                assertThat(r.getName().toLowerCase()).contains("alice"));
+                assertThat(r.getPersonalInfo().getName().toLowerCase()).contains("alice"));
     }
 
     @Test
     void search_byDepartment_filtersCorrectly() {
         List<Record> records = recordRepository.search(null, null, "Engineering", null, null, 10, 0);
         assertThat(records).allSatisfy(r ->
-                assertThat(r.getDepartment()).isEqualTo("Engineering"));
+                assertThat(r.getWorkInfo().getDepartment()).isEqualTo("Engineering"));
     }
 
     @Test
@@ -75,7 +90,7 @@ class RecordRepositoryTest {
     void findById_existingRecord_returnsRecord() {
         Optional<Record> result = recordRepository.findById(1L);
         assertThat(result).isPresent();
-        assertThat(result.get().getName()).isEqualTo("Alice Johnson");
+        assertThat(result.get().getPersonalInfo().getName()).isEqualTo("Alice Johnson");
     }
 
     @Test
@@ -87,15 +102,21 @@ class RecordRepositoryTest {
     @Test
     void insert_createsNewRecord() {
         Record record = Record.builder()
-                .name("Test Person")
-                .email("test@test.com")
-                .phone("(555) 123-4567")
-                .department("Engineering")
-                .status("active")
-                .remoteEligible(true)
-                .notificationsEnabled(true)
-                .accessLevel("standard")
-                .startDate(LocalDate.of(2024, 1, 1))
+                .personalInfo(PersonalInfo.builder()
+                        .name("Test Person")
+                        .email("test@test.com")
+                        .phone("(555) 123-4567")
+                        .build())
+                .workInfo(WorkInfo.builder()
+                        .department("Engineering")
+                        .status("active")
+                        .startDate(LocalDate.of(2024, 1, 1))
+                        .build())
+                .preferences(Preferences.builder()
+                        .remoteEligible(true)
+                        .notificationsEnabled(true)
+                        .accessLevel("standard")
+                        .build())
                 .build();
 
         Long id = recordRepository.insert(record);
@@ -103,18 +124,24 @@ class RecordRepositoryTest {
         assertThat(id).isNotNull().isPositive();
         Optional<Record> saved = recordRepository.findById(id);
         assertThat(saved).isPresent();
-        assertThat(saved.get().getName()).isEqualTo("Test Person");
+        assertThat(saved.get().getPersonalInfo().getName()).isEqualTo("Test Person");
     }
 
     @Test
     void update_modifiesRecord() {
         Record record = Record.builder()
-                .name("Updated Name")
-                .email("alice.johnson@company.com")
-                .status("active")
-                .remoteEligible(false)
-                .notificationsEnabled(true)
-                .accessLevel("elevated")
+                .personalInfo(PersonalInfo.builder()
+                        .name("Updated Name")
+                        .email("alice.johnson@company.com")
+                        .build())
+                .workInfo(WorkInfo.builder()
+                        .status("active")
+                        .build())
+                .preferences(Preferences.builder()
+                        .remoteEligible(false)
+                        .notificationsEnabled(true)
+                        .accessLevel("elevated")
+                        .build())
                 .build();
 
         int rows = recordRepository.update(1L, record);
@@ -122,21 +149,13 @@ class RecordRepositoryTest {
         assertThat(rows).isEqualTo(1);
         Optional<Record> updated = recordRepository.findById(1L);
         assertThat(updated).isPresent();
-        assertThat(updated.get().getName()).isEqualTo("Updated Name");
-        assertThat(updated.get().getAccessLevel()).isEqualTo("elevated");
+        assertThat(updated.get().getPersonalInfo().getName()).isEqualTo("Updated Name");
+        assertThat(updated.get().getPreferences().getAccessLevel()).isEqualTo("elevated");
     }
 
     @Test
     void delete_removesRecord() {
-        // Insert then delete to avoid breaking other tests
-        Record record = Record.builder()
-                .name("To Delete")
-                .email("delete-me@test.com")
-                .status("active")
-                .remoteEligible(false)
-                .notificationsEnabled(false)
-                .accessLevel("standard")
-                .build();
+        Record record = buildRecord("To Delete", "delete-me@test.com");
         Long id = recordRepository.insert(record);
 
         int rows = recordRepository.delete(id);

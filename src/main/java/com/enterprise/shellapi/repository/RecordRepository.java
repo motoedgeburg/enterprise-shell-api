@@ -1,6 +1,9 @@
 package com.enterprise.shellapi.repository;
 
+import com.enterprise.shellapi.model.PersonalInfo;
+import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
+import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.util.SqlQueryLoader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.RowMapper;
@@ -28,24 +31,30 @@ public class RecordRepository {
 
     private static final RowMapper<Record> ROW_MAPPER = (rs, rowNum) -> Record.builder()
             .id(rs.getLong("id"))
-            .name(rs.getString("name"))
-            .email(rs.getString("email"))
-            .phone(rs.getString("phone"))
-            .address(rs.getString("address"))
-            .dateOfBirth(getLocalDate(rs, "date_of_birth"))
-            .ssn(rs.getString("ssn"))
-            .bio(rs.getString("bio"))
-            .department(rs.getString("department"))
-            .jobTitle(rs.getString("job_title"))
-            .employmentType(rs.getString("employment_type"))
-            .startDate(getLocalDate(rs, "start_date"))
-            .manager(rs.getString("manager"))
-            .status(rs.getString("status"))
-            .remoteEligible(rs.getBoolean("remote_eligible"))
-            .notificationsEnabled(rs.getBoolean("notifications_enabled"))
-            .notificationChannels(parseChannels(rs.getString("notification_channels")))
-            .accessLevel(rs.getString("access_level"))
-            .notes(rs.getString("notes"))
+            .personalInfo(PersonalInfo.builder()
+                    .name(rs.getString("name"))
+                    .email(rs.getString("email"))
+                    .phone(rs.getString("phone"))
+                    .address(rs.getString("address"))
+                    .dateOfBirth(getLocalDate(rs, "date_of_birth"))
+                    .ssn(rs.getString("ssn"))
+                    .bio(rs.getString("bio"))
+                    .build())
+            .workInfo(WorkInfo.builder()
+                    .jobTitle(rs.getString("job_title"))
+                    .manager(rs.getString("manager"))
+                    .department(rs.getString("department"))
+                    .status(rs.getString("status"))
+                    .startDate(getLocalDate(rs, "start_date"))
+                    .employmentType(rs.getString("employment_type"))
+                    .build())
+            .preferences(Preferences.builder()
+                    .remoteEligible(rs.getBoolean("remote_eligible"))
+                    .notificationsEnabled(rs.getBoolean("notifications_enabled"))
+                    .notificationChannels(parseChannels(rs.getString("notification_channels")))
+                    .accessLevel(rs.getString("access_level"))
+                    .notes(rs.getString("notes"))
+                    .build())
             .createdAt(getTimestamp(rs, "created_at"))
             .build();
 
@@ -103,26 +112,30 @@ public class RecordRepository {
     }
 
     private MapSqlParameterSource buildParams(Record record) {
+        PersonalInfo pi = record.getPersonalInfo();
+        WorkInfo wi = record.getWorkInfo();
+        Preferences pref = record.getPreferences();
+
         return new MapSqlParameterSource()
-                .addValue("name", record.getName())
-                .addValue("email", record.getEmail())
-                .addValue("phone", record.getPhone())
-                .addValue("address", record.getAddress())
-                .addValue("dateOfBirth", record.getDateOfBirth())
-                .addValue("ssn", record.getSsn())
-                .addValue("bio", record.getBio())
-                .addValue("department", record.getDepartment())
-                .addValue("jobTitle", record.getJobTitle())
-                .addValue("employmentType", record.getEmploymentType())
-                .addValue("startDate", record.getStartDate())
-                .addValue("manager", record.getManager())
-                .addValue("status", record.getStatus())
-                .addValue("remoteEligible", record.getRemoteEligible())
-                .addValue("notificationsEnabled", record.getNotificationsEnabled())
-                .addValue("notificationChannels", record.getNotificationChannels() != null
-                        ? String.join(",", record.getNotificationChannels()) : null)
-                .addValue("accessLevel", record.getAccessLevel())
-                .addValue("notes", record.getNotes());
+                .addValue("name", pi.getName())
+                .addValue("email", pi.getEmail())
+                .addValue("phone", pi.getPhone())
+                .addValue("address", pi.getAddress())
+                .addValue("dateOfBirth", pi.getDateOfBirth())
+                .addValue("ssn", pi.getSsn())
+                .addValue("bio", pi.getBio())
+                .addValue("jobTitle", wi.getJobTitle())
+                .addValue("manager", wi.getManager())
+                .addValue("department", wi.getDepartment())
+                .addValue("status", wi.getStatus())
+                .addValue("startDate", wi.getStartDate())
+                .addValue("employmentType", wi.getEmploymentType())
+                .addValue("remoteEligible", pref.getRemoteEligible())
+                .addValue("notificationsEnabled", pref.getNotificationsEnabled())
+                .addValue("notificationChannels", pref.getNotificationChannels() != null
+                        ? String.join(",", pref.getNotificationChannels()) : null)
+                .addValue("accessLevel", pref.getAccessLevel())
+                .addValue("notes", pref.getNotes());
     }
 
     private static List<String> parseChannels(String channels) {

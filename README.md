@@ -63,7 +63,7 @@ com.enterprise.shellapi
 ├── controller/     — @RestController classes
 ├── service/        — @Service classes (business logic)
 ├── repository/     — JdbcTemplate repository classes (data access)
-├── model/          — Domain objects (what the DB returns)
+├── model/          — Domain objects (Record, PersonalInfo, WorkInfo, Preferences, etc.)
 ├── dto/            — Request/response objects for the API layer
 ├── config/         — SecurityConfig, CorsConfig, JwtConfig, OpenApiConfig
 ├── exception/      — GlobalExceptionHandler, custom exceptions
@@ -133,12 +133,84 @@ okta:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/lookups` | Get all lookup values (departments, statuses, etc.) |
+| GET | `/api/lookups` | Get all lookup values as `{ value, label }` objects |
 | GET | `/api/records?page=0&size=10&name=&email=&department=&status=&address=` | Search/list records (paginated) |
-| GET | `/api/records/{id}` | Get a single record with emergency contacts and certifications |
+| GET | `/api/records/{id}` | Get a single record with all nested objects |
 | POST | `/api/records` | Create a new record |
 | PUT | `/api/records/{id}` | Update an existing record |
 | DELETE | `/api/records/{id}` | Delete a record |
+
+### Record structure
+
+Records use a nested object model matching UI sections:
+
+```json
+{
+  "id": 1,
+  "personalInfo": {
+    "name": "Alice Johnson",
+    "email": "alice@company.com",
+    "phone": "(555) 123-4567",
+    "address": "123 Main St",
+    "dateOfBirth": "1990-03-15",
+    "ssn": "***-**-1234",
+    "bio": "Senior engineer"
+  },
+  "workInfo": {
+    "jobTitle": "Staff Engineer",
+    "manager": "Bob Smith",
+    "department": "Engineering",
+    "status": "active",
+    "startDate": "2022-01-10",
+    "employmentType": "full-time"
+  },
+  "preferences": {
+    "remoteEligible": true,
+    "notificationsEnabled": true,
+    "notificationChannels": ["email", "slack"],
+    "accessLevel": "standard",
+    "notes": null
+  },
+  "emergencyContacts": [
+    {
+      "id": 1,
+      "name": "Jane Johnson",
+      "relationship": "Spouse",
+      "phone": "(555) 987-6543",
+      "email": "jane@email.com",
+      "isPrimary": true
+    }
+  ],
+  "certifications": [
+    {
+      "id": 1,
+      "name": "AWS Solutions Architect",
+      "issuingBody": "Amazon",
+      "issueDate": "2023-06-01",
+      "expiryDate": "2026-06-01",
+      "credentialId": "AWS-12345"
+    }
+  ],
+  "createdAt": "2024-01-15T10:30:00"
+}
+```
+
+The request body for POST/PUT uses the same nested structure via `personalInfo`, `workInfo`, `preferences`, `emergencyContacts`, and `certifications` sections.
+
+### Lookups response
+
+The `/api/lookups` endpoint returns `{ value, label }` objects for all fields:
+
+```json
+{
+  "departments": [{ "value": "Engineering", "label": "Engineering" }, ...],
+  "statuses": [{ "value": "active", "label": "Active" }, ...],
+  "employmentTypes": [{ "value": "full-time", "label": "Full-time" }, ...],
+  "notificationChannels": [{ "value": "email", "label": "Email" }, ...],
+  "accessLevels": [{ "value": "standard", "label": "Standard" }, ...],
+  "relationships": [{ "value": "Spouse", "label": "Spouse" }, ...]
+}
+```
 
 ### Error responses
 
@@ -150,7 +222,7 @@ All errors use a consistent shape:
   "status": 404,
   "timestamp": "2024-01-15T10:30:00",
   "errors": [
-    { "field": "name", "message": "Name is required" }
+    { "field": "personalInfo.name", "message": "Name is required" }
   ]
 }
 ```

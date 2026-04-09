@@ -4,7 +4,10 @@ import com.enterprise.shellapi.dto.*;
 import com.enterprise.shellapi.exception.RecordNotFoundException;
 import com.enterprise.shellapi.model.Certification;
 import com.enterprise.shellapi.model.EmergencyContact;
+import com.enterprise.shellapi.model.PersonalInfo;
+import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
+import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.repository.CertificationRepository;
 import com.enterprise.shellapi.repository.EmergencyContactRepository;
 import com.enterprise.shellapi.repository.RecordRepository;
@@ -120,25 +123,39 @@ public class RecordService {
     }
 
     private Record mapToRecord(RecordRequest request) {
+        PersonalInfoRequest pi = request.getPersonalInfo();
+        WorkInfoRequest wi = request.getWorkInfo();
+        PreferencesRequest pref = request.getPreferences();
+
         return Record.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .phone(request.getPhone())
-                .address(request.getAddress())
-                .dateOfBirth(request.getDateOfBirth())
-                .ssn(request.getSsn())
-                .bio(request.getBio())
-                .department(request.getDepartment())
-                .jobTitle(request.getJobTitle())
-                .employmentType(request.getEmploymentType())
-                .startDate(request.getStartDate())
-                .manager(request.getManager())
-                .status(request.getStatus() != null ? request.getStatus() : "active")
-                .remoteEligible(request.getRemoteEligible() != null ? request.getRemoteEligible() : false)
-                .notificationsEnabled(request.getNotificationsEnabled() != null ? request.getNotificationsEnabled() : true)
-                .notificationChannels(request.getNotificationChannels())
-                .accessLevel(request.getAccessLevel() != null ? request.getAccessLevel() : "standard")
-                .notes(request.getNotes())
+                .personalInfo(PersonalInfo.builder()
+                        .name(pi.getName())
+                        .email(pi.getEmail())
+                        .phone(pi.getPhone())
+                        .address(pi.getAddress())
+                        .dateOfBirth(pi.getDateOfBirth())
+                        .ssn(pi.getSsn())
+                        .bio(pi.getBio())
+                        .build())
+                .workInfo(WorkInfo.builder()
+                        .jobTitle(wi.getJobTitle())
+                        .manager(wi.getManager())
+                        .department(wi.getDepartment())
+                        .status(wi.getStatus() != null ? wi.getStatus() : "active")
+                        .startDate(wi.getStartDate())
+                        .employmentType(wi.getEmploymentType())
+                        .build())
+                .preferences(pref != null ? Preferences.builder()
+                        .remoteEligible(pref.getRemoteEligible() != null ? pref.getRemoteEligible() : false)
+                        .notificationsEnabled(pref.getNotificationsEnabled() != null ? pref.getNotificationsEnabled() : true)
+                        .notificationChannels(pref.getNotificationChannels())
+                        .accessLevel(pref.getAccessLevel() != null ? pref.getAccessLevel() : "standard")
+                        .notes(pref.getNotes())
+                        .build() : Preferences.builder()
+                        .remoteEligible(false)
+                        .notificationsEnabled(true)
+                        .accessLevel("standard")
+                        .build())
                 .build();
     }
 
