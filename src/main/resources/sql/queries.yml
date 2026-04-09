@@ -1,0 +1,73 @@
+records:
+  findAll: >
+    SELECT * FROM records
+    ORDER BY created_at DESC
+    LIMIT :limit OFFSET :offset
+  findById: >
+    SELECT * FROM records WHERE id = :id
+  search: >
+    SELECT * FROM records
+    WHERE (:name IS NULL OR LOWER(name) LIKE LOWER(CONCAT('%', :name, '%')))
+    AND (:email IS NULL OR LOWER(email) LIKE LOWER(CONCAT('%', :email, '%')))
+    AND (:department IS NULL OR department = :department)
+    AND (:status IS NULL OR status = :status)
+    AND (:address IS NULL OR LOWER(address) LIKE LOWER(CONCAT('%', :address, '%')))
+    ORDER BY created_at DESC
+    LIMIT :limit OFFSET :offset
+  count: >
+    SELECT COUNT(*) FROM records
+    WHERE (:name IS NULL OR LOWER(name) LIKE LOWER(CONCAT('%', :name, '%')))
+    AND (:email IS NULL OR LOWER(email) LIKE LOWER(CONCAT('%', :email, '%')))
+    AND (:department IS NULL OR department = :department)
+    AND (:status IS NULL OR status = :status)
+    AND (:address IS NULL OR LOWER(address) LIKE LOWER(CONCAT('%', :address, '%')))
+  insert: >
+    INSERT INTO records (name, email, phone, address, date_of_birth, ssn, bio,
+      department, job_title, employment_type, start_date, manager, status,
+      remote_eligible, notifications_enabled, notification_channels, access_level, notes)
+    VALUES (:name, :email, :phone, :address, :dateOfBirth, :ssn, :bio,
+      :department, :jobTitle, :employmentType, :startDate, :manager, :status,
+      :remoteEligible, :notificationsEnabled, :notificationChannels, :accessLevel, :notes)
+  update: >
+    UPDATE records SET
+      name = :name, email = :email, phone = :phone, address = :address,
+      date_of_birth = :dateOfBirth, ssn = :ssn, bio = :bio,
+      department = :department, job_title = :jobTitle, employment_type = :employmentType,
+      start_date = :startDate, manager = :manager, status = :status,
+      remote_eligible = :remoteEligible, notifications_enabled = :notificationsEnabled,
+      notification_channels = :notificationChannels, access_level = :accessLevel, notes = :notes
+    WHERE id = :id
+  delete: >
+    DELETE FROM records WHERE id = :id
+
+emergencyContacts:
+  findByRecordId: >
+    SELECT * FROM emergency_contacts WHERE record_id = :recordId ORDER BY is_primary DESC, id ASC
+  insert: >
+    INSERT INTO emergency_contacts (record_id, name, relationship, phone, email, is_primary)
+    VALUES (:recordId, :name, :relationship, :phone, :email, :isPrimary)
+  deleteByRecordId: >
+    DELETE FROM emergency_contacts WHERE record_id = :recordId
+
+certifications:
+  findByRecordId: >
+    SELECT * FROM certifications WHERE record_id = :recordId ORDER BY issue_date DESC
+  insert: >
+    INSERT INTO certifications (record_id, name, issuing_body, issue_date, expiry_date, credential_id)
+    VALUES (:recordId, :name, :issuingBody, :issueDate, :expiryDate, :credentialId)
+  deleteByRecordId: >
+    DELETE FROM certifications WHERE record_id = :recordId
+
+lookups:
+  findDepartments: >
+    SELECT name FROM departments ORDER BY name
+  findStatuses: >
+    SELECT name FROM statuses ORDER BY name
+  findEmploymentTypes: >
+    SELECT name FROM employment_types ORDER BY name
+  findNotificationChannels: >
+    SELECT name FROM notification_channels ORDER BY name
+  findAccessLevels: >
+    SELECT name FROM access_levels ORDER BY name
+  findRelationships: >
+    SELECT DISTINCT relationship FROM emergency_contacts WHERE relationship IS NOT NULL ORDER BY relationship
