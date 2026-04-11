@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -100,7 +99,6 @@ public class RecordRepository {
     public Long insert(Record record) {
         String sql = sqlQueryLoader.getQuery("records", "insert");
         MapSqlParameterSource params = buildParams(record);
-        params.addValue("uuid", UUID.randomUUID().toString());
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder, new String[]{"id"});
         return keyHolder.getKey().longValue();

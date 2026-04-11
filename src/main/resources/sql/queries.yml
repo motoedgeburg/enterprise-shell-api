@@ -16,10 +16,10 @@ records:
     AND (:address IS NULL OR LOWER(address) LIKE LOWER(CONCAT('%', :address, '%')))
     ORDER BY created_at DESC
   insert: >
-    INSERT INTO records (uuid, name, email, phone, address, date_of_birth, ssn, bio,
+    INSERT INTO records (name, email, phone, address, date_of_birth, ssn, bio,
       department, job_title, employment_type, start_date, manager, status,
       remote_eligible, notifications_enabled, notification_channels, access_level, notes)
-    VALUES (:uuid, :name, :email, :phone, :address, :dateOfBirth, :ssn, :bio,
+    VALUES (:name, :email, :phone, :address, :dateOfBirth, :ssn, :bio,
       :department, :jobTitle, :employmentType, :startDate, :manager, :status,
       :remoteEligible, :notificationsEnabled, :notificationChannels, :accessLevel, :notes)
   update: >
