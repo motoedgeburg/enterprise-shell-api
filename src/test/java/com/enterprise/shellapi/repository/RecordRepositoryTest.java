@@ -106,6 +106,47 @@ class RecordRepositoryTest {
     }
 
     @Test
+    void search_byEmail_filtersCorrectly() {
+        List<RecordSummary> results = recordRepository.search(null, "alice.johnson", null, null, null);
+        assertThat(results).isNotEmpty();
+        assertThat(results).allSatisfy(r ->
+                assertThat(r.getName().toLowerCase()).contains("alice"));
+    }
+
+    @Test
+    void search_byStatus_filtersCorrectly() {
+        List<RecordSummary> results = recordRepository.search(null, null, null, "active", null);
+        assertThat(results).isNotEmpty();
+        assertThat(results).allSatisfy(r ->
+                assertThat(r.getStatus()).isEqualTo("active"));
+    }
+
+    @Test
+    void search_byAddress_filtersCorrectly() {
+        List<RecordSummary> results = recordRepository.search(null, null, null, null, "Market St");
+        assertThat(results).isNotEmpty();
+        assertThat(results).allSatisfy(r ->
+                assertThat(r.getAddress().toLowerCase()).contains("market st"));
+    }
+
+    @Test
+    void search_multipleFilters_narrowsResults() {
+        List<RecordSummary> results = recordRepository.search("Alice", null, "Engineering", "active", null);
+        assertThat(results).isNotEmpty();
+        assertThat(results).allSatisfy(r -> {
+            assertThat(r.getName().toLowerCase()).contains("alice");
+            assertThat(r.getDepartment()).isEqualTo("Engineering");
+            assertThat(r.getStatus()).isEqualTo("active");
+        });
+    }
+
+    @Test
+    void search_noMatch_returnsEmptyList() {
+        List<RecordSummary> results = recordRepository.search("ZZZNOEXIST", null, null, null, null);
+        assertThat(results).isEmpty();
+    }
+
+    @Test
     void insert_createsNewRecordWithUuid() {
         Record record = Record.builder()
                 .personalInfo(PersonalInfo.builder()

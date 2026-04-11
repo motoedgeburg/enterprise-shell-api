@@ -1,6 +1,10 @@
 package com.enterprise.shellapi.service;
 
+import com.enterprise.shellapi.dto.CertificationRequest;
+import com.enterprise.shellapi.dto.EmergencyContactRequest;
+import com.enterprise.shellapi.dto.HistoryRequest;
 import com.enterprise.shellapi.dto.PersonalInfoRequest;
+import com.enterprise.shellapi.dto.PreferencesRequest;
 import com.enterprise.shellapi.dto.RecordRequest;
 import com.enterprise.shellapi.dto.RecordSummary;
 import com.enterprise.shellapi.dto.WorkInfoRequest;
@@ -20,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -177,5 +182,198 @@ class RecordServiceTest {
 
         assertThatThrownBy(() -> recordService.delete("bad-uuid"))
                 .isInstanceOf(RecordNotFoundException.class);
+    }
+
+    @Test
+    void create_withHistory_savesContactsAndCerts() {
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder().name("Test").email("t@t.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Eng").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .history(HistoryRequest.builder()
+                        .emergencyContacts(List.of(EmergencyContactRequest.builder()
+                                .name("Contact").relationship("Spouse").phone("(555) 111-2222").build()))
+                        .certifications(List.of(CertificationRequest.builder()
+                                .name("AWS").issuingBody("Amazon").issueDate(LocalDate.of(2024, 1, 1)).build()))
+                        .build())
+                .build();
+
+        when(recordRepository.insert(any(Record.class))).thenReturn(10L);
+        Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
+        when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+
+        recordService.create(request);
+
+        verify(emergencyContactRepository).insert(any(EmergencyContact.class));
+        verify(certificationRepository).insert(any(Certification.class));
+    }
+
+    @Test
+    void create_withNullHistory_skipsRelations() {
+        RecordRequest request = buildRequest("Test", "t@t.com");
+
+        when(recordRepository.insert(any(Record.class))).thenReturn(10L);
+        Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
+        when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+
+        recordService.create(request);
+
+        verify(emergencyContactRepository, never()).insert(any(EmergencyContact.class));
+        verify(certificationRepository, never()).insert(any(Certification.class));
+    }
+
+    @Test
+    void create_withPreferences_mapsAllFields() {
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder().name("Test").email("t@t.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Eng").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .preferences(PreferencesRequest.builder()
+                        .remoteEligible(true)
+                        .notificationsEnabled(false)
+                        .notificationChannels(List.of("email", "slack"))
+                        .accessLevel("elevated")
+                        .notes("Some notes")
+                        .build())
+                .build();
+
+        when(recordRepository.insert(any(Record.class))).thenReturn(10L);
+        Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
+        when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+
+        recordService.create(request);
+
+        verify(recordRepository).insert(argThat(record ->
+                record.getPreferences().getRemoteEligible() &&
+                !record.getPreferences().getNotificationsEnabled() &&
+                record.getPreferences().getAccessLevel().equals("elevated")));
+    }
+
+    @Test
+    void create_withNullPreferences_usesDefaults() {
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder().name("Test").email("t@t.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Eng").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .build();
+
+        when(recordRepository.insert(any(Record.class))).thenReturn(10L);
+        Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
+        when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+
+        recordService.create(request);
+
+        verify(recordRepository).insert(argThat(record ->
+                !record.getPreferences().getRemoteEligible() &&
+                record.getPreferences().getNotificationsEnabled() &&
+                record.getPreferences().getAccessLevel().equals("standard")));
+    }
+
+    @Test
+    void update_withHistory_syncsContactsAndCerts() {
+        Record existing = buildRecord(1L, TEST_UUID, "Old", "old@test.com");
+        Record updated = buildRecord(1L, TEST_UUID, "Updated", "updated@test.com");
+
+        when(recordRepository.findByUuid(TEST_UUID))
+                .thenReturn(Optional.of(existing))
+                .thenReturn(Optional.of(updated));
+        when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder().name("Updated").email("updated@test.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Eng").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .history(HistoryRequest.builder()
+                        .emergencyContacts(List.of(EmergencyContactRequest.builder()
+                                .name("New Contact").relationship("Parent").build()))
+                        .certifications(List.of(CertificationRequest.builder()
+                                .name("New Cert").issuingBody("Org").issueDate(LocalDate.of(2024, 1, 1)).build()))
+                        .build())
+                .build();
+
+        recordService.update(TEST_UUID, request);
+
+        verify(emergencyContactRepository).insert(any(EmergencyContact.class));
+        verify(certificationRepository).insert(any(Certification.class));
+        verify(emergencyContactRepository).deleteByRecordIdExcluding(eq(1L), anyList());
+        verify(certificationRepository).deleteByRecordIdExcluding(eq(1L), anyList());
+    }
+
+    @Test
+    void update_withExistingContactIds_updatesInstead() {
+        Record existing = buildRecord(1L, TEST_UUID, "Old", "old@test.com");
+        Record updated = buildRecord(1L, TEST_UUID, "Updated", "updated@test.com");
+
+        when(recordRepository.findByUuid(TEST_UUID))
+                .thenReturn(Optional.of(existing))
+                .thenReturn(Optional.of(updated));
+        when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder().name("Updated").email("updated@test.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Eng").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .history(HistoryRequest.builder()
+                        .emergencyContacts(List.of(EmergencyContactRequest.builder()
+                                .id(5L).name("Existing Contact").relationship("Spouse").build()))
+                        .certifications(List.of(CertificationRequest.builder()
+                                .id(3L).name("Existing Cert").issuingBody("Org").issueDate(LocalDate.of(2024, 1, 1)).build()))
+                        .build())
+                .build();
+
+        recordService.update(TEST_UUID, request);
+
+        verify(emergencyContactRepository).update(any(EmergencyContact.class));
+        verify(certificationRepository).update(any(Certification.class));
+        verify(emergencyContactRepository, never()).insert(any(EmergencyContact.class));
+        verify(certificationRepository, never()).insert(any(Certification.class));
+    }
+
+    @Test
+    void update_withNullHistory_deletesAllRelations() {
+        Record existing = buildRecord(1L, TEST_UUID, "Old", "old@test.com");
+        Record updated = buildRecord(1L, TEST_UUID, "Updated", "updated@test.com");
+
+        when(recordRepository.findByUuid(TEST_UUID))
+                .thenReturn(Optional.of(existing))
+                .thenReturn(Optional.of(updated));
+        when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+
+        RecordRequest request = buildRequest("Updated", "updated@test.com");
+
+        recordService.update(TEST_UUID, request);
+
+        verify(emergencyContactRepository).deleteByRecordId(1L);
+        verify(certificationRepository).deleteByRecordId(1L);
+    }
+
+    @Test
+    void search_blankParams_treatedAsNull() {
+        when(recordRepository.search(null, null, null, null, null))
+                .thenReturn(Collections.emptyList());
+
+        List<RecordSummary> result = recordService.search("", "  ", "", null, "");
+
+        assertThat(result).isEmpty();
+        verify(recordRepository).search(null, null, null, null, null);
     }
 }

@@ -288,6 +288,17 @@ class RecordControllerTest {
     }
 
     @Test
+    void findByUuid_unexpectedError_returns500() throws Exception {
+        when(recordService.findByUuid("some-uuid"))
+                .thenThrow(new RuntimeException("Unexpected DB error"));
+
+        mockMvc.perform(get("/api/records/some-uuid"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Internal server error"))
+                .andExpect(jsonPath("$.status").value(500));
+    }
+
+    @Test
     void create_invalidLookupValue_returns400() throws Exception {
         RecordRequest request = buildRequest("Test", "test@company.com");
 

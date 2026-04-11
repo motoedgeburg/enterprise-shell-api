@@ -66,10 +66,74 @@ class EmergencyContactRepositoryTest {
     }
 
     @Test
+    void findByRecordId_noResults_returnsEmptyList() {
+        List<EmergencyContact> contacts = emergencyContactRepository.findByRecordId(999L);
+        assertThat(contacts).isEmpty();
+    }
+
+    @Test
+    void findByRecordIds_returnsAcrossRecords() {
+        List<EmergencyContact> contacts = emergencyContactRepository.findByRecordIds(List.of(1L, 2L));
+        assertThat(contacts).isNotEmpty();
+        assertThat(contacts).allSatisfy(c ->
+                assertThat(c.getRecordId()).isIn(1L, 2L));
+    }
+
+    @Test
+    void findByRecordIds_emptyList_returnsEmpty() {
+        List<EmergencyContact> contacts = emergencyContactRepository.findByRecordIds(List.of());
+        assertThat(contacts).isEmpty();
+    }
+
+    @Test
+    void update_modifiesContact() {
+        List<EmergencyContact> existing = emergencyContactRepository.findByRecordId(1L);
+        assertThat(existing).isNotEmpty();
+        EmergencyContact contact = existing.get(0);
+
+        EmergencyContact updated = EmergencyContact.builder()
+                .id(contact.getId())
+                .recordId(contact.getRecordId())
+                .name("Updated Name")
+                .relationship(contact.getRelationship())
+                .phone(contact.getPhone())
+                .email(contact.getEmail())
+                .isPrimary(contact.getIsPrimary())
+                .build();
+
+        emergencyContactRepository.update(updated);
+
+        List<EmergencyContact> afterUpdate = emergencyContactRepository.findByRecordId(1L);
+        assertThat(afterUpdate).anyMatch(c -> c.getName().equals("Updated Name"));
+    }
+
+    @Test
     void deleteByRecordId_removesAllContacts() {
         emergencyContactRepository.deleteByRecordId(2L);
 
         List<EmergencyContact> contacts = emergencyContactRepository.findByRecordId(2L);
         assertThat(contacts).isEmpty();
+    }
+
+    @Test
+    void deleteByRecordIdExcluding_keepsSpecifiedIds() {
+        List<EmergencyContact> existing = emergencyContactRepository.findByRecordId(2L);
+        assertThat(existing).hasSizeGreaterThanOrEqualTo(2);
+        Long keepId = existing.get(0).getId();
+
+        emergencyContactRepository.deleteByRecordIdExcluding(2L, List.of(keepId));
+
+        List<EmergencyContact> remaining = emergencyContactRepository.findByRecordId(2L);
+        assertThat(remaining).hasSize(1);
+        assertThat(remaining.get(0).getId()).isEqualTo(keepId);
+    }
+
+    @Test
+    void deleteByRecordIdExcluding_emptyKeepList_deletesAll() {
+        assertThat(emergencyContactRepository.findByRecordId(2L)).isNotEmpty();
+
+        emergencyContactRepository.deleteByRecordIdExcluding(2L, List.of());
+
+        assertThat(emergencyContactRepository.findByRecordId(2L)).isEmpty();
     }
 }
