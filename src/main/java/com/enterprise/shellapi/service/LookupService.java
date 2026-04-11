@@ -22,6 +22,7 @@ public class LookupService {
                 .employmentTypes(toLabeledOptions(lookupRepository.findEmploymentTypes()))
                 .notificationChannels(toLabeledOptions(lookupRepository.findNotificationChannels()))
                 .accessLevels(toLabeledOptions(lookupRepository.findAccessLevels()))
+                .payFrequencies(toLabeledOptions(lookupRepository.findPayFrequencies()))
                 .build();
     }
 

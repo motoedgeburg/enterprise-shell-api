@@ -36,6 +36,11 @@ public class RecordRequestValidator {
                     request.getPreferences().getAccessLevel(), lookupRepository.findAccessLevels());
         }
 
+        if (request.getCompensation() != null && request.getCompensation().getPayFrequency() != null) {
+            validateLookup(errors, "compensation.payFrequency",
+                    request.getCompensation().getPayFrequency(), lookupRepository.findPayFrequencies());
+        }
+
         if (request.getHistory() != null && request.getHistory().getEmergencyContacts() != null) {
             List<String> validRelationships = lookupRepository.findRelationships();
             List<EmergencyContactRequest> contacts = request.getHistory().getEmergencyContacts();

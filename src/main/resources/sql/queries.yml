@@ -67,6 +67,20 @@ certifications:
   deleteByIds: >
     DELETE FROM certifications WHERE record_id = :recordId AND id NOT IN (:ids)
 
+compensation:
+  findByRecordId: >
+    SELECT * FROM compensation WHERE record_id = :recordId
+  insert: >
+    INSERT INTO compensation (record_id, base_salary, pay_frequency, bonus_target, stock_options, effective_date, overtime_eligible)
+    VALUES (:recordId, :baseSalary, :payFrequency, :bonusTarget, :stockOptions, :effectiveDate, :overtimeEligible)
+  update: >
+    UPDATE compensation SET
+      base_salary = :baseSalary, pay_frequency = :payFrequency, bonus_target = :bonusTarget,
+      stock_options = :stockOptions, effective_date = :effectiveDate, overtime_eligible = :overtimeEligible
+    WHERE record_id = :recordId
+  deleteByRecordId: >
+    DELETE FROM compensation WHERE record_id = :recordId
+
 lookups:
   findDepartments: >
     SELECT name FROM departments ORDER BY name
@@ -78,5 +92,7 @@ lookups:
     SELECT name FROM notification_channels ORDER BY name
   findAccessLevels: >
     SELECT name FROM access_levels ORDER BY name
+  findPayFrequencies: >
+    SELECT name FROM pay_frequencies ORDER BY name
   findRelationships: >
     SELECT DISTINCT relationship FROM emergency_contacts WHERE relationship IS NOT NULL ORDER BY relationship

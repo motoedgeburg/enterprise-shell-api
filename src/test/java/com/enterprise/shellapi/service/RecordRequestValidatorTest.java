@@ -1,5 +1,6 @@
 package com.enterprise.shellapi.service;
 
+import com.enterprise.shellapi.dto.CompensationRequest;
 import com.enterprise.shellapi.dto.EmergencyContactRequest;
 import com.enterprise.shellapi.dto.HistoryRequest;
 import com.enterprise.shellapi.dto.PersonalInfoRequest;
@@ -178,6 +179,31 @@ class RecordRequestValidatorTest {
                 .satisfies(ex -> {
                     ValidationException ve = (ValidationException) ex;
                     assertThat(ve.getFieldErrors()).hasSize(3);
+                });
+    }
+
+    @Test
+    void invalidPayFrequency_throwsWithField() {
+        stubAllLookups();
+        when(lookupRepository.findPayFrequencies()).thenReturn(List.of("annual", "monthly", "bi-weekly", "weekly"));
+
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder().name("T").email("t@t.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Eng").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .compensation(CompensationRequest.builder()
+                        .baseSalary(new java.math.BigDecimal("100000"))
+                        .payFrequency("daily")
+                        .effectiveDate(java.time.LocalDate.of(2024, 1, 1))
+                        .build())
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(request))
+                .isInstanceOf(ValidationException.class)
+                .satisfies(ex -> {
+                    ValidationException ve = (ValidationException) ex;
+                    assertThat(ve.getFieldErrors().get(0).getField()).isEqualTo("compensation.payFrequency");
                 });
     }
 }

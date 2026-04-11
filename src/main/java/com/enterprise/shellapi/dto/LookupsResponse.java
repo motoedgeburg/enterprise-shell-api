@@ -19,4 +19,5 @@ public class LookupsResponse {
     private List<LookupOption> employmentTypes;
     private List<LookupOption> notificationChannels;
     private List<LookupOption> accessLevels;
+    private List<LookupOption> payFrequencies;
 }

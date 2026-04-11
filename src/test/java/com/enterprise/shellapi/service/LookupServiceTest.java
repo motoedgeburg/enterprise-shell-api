@@ -30,6 +30,7 @@ class LookupServiceTest {
         when(lookupRepository.findNotificationChannels()).thenReturn(List.of("email", "slack"));
         when(lookupRepository.findAccessLevels()).thenReturn(List.of("standard", "admin"));
         when(lookupRepository.findRelationships()).thenReturn(List.of("Spouse"));
+        when(lookupRepository.findPayFrequencies()).thenReturn(List.of("annual", "monthly"));
 
         LookupsResponse result = lookupService.getAllLookups();
 
@@ -39,5 +40,8 @@ class LookupServiceTest {
         assertThat(result.getNotificationChannels()).hasSize(2);
         assertThat(result.getAccessLevels()).hasSize(2);
         assertThat(result.getRelationships()).hasSize(1);
+        assertThat(result.getPayFrequencies()).hasSize(2);
+        assertThat(result.getPayFrequencies().get(0).getValue()).isEqualTo("annual");
+        assertThat(result.getPayFrequencies().get(0).getLabel()).isEqualTo("Annual");
     }
 }

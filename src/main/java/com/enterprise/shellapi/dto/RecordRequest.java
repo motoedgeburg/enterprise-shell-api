@@ -25,5 +25,8 @@ public class RecordRequest {
     private PreferencesRequest preferences;
 
     @Valid
+    private CompensationRequest compensation;
+
+    @Valid
     private HistoryRequest history;
 }

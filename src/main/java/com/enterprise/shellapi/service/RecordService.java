@@ -1,6 +1,7 @@
 package com.enterprise.shellapi.service;
 
 import com.enterprise.shellapi.dto.CertificationRequest;
+import com.enterprise.shellapi.dto.CompensationRequest;
 import com.enterprise.shellapi.dto.EmergencyContactRequest;
 import com.enterprise.shellapi.dto.HistoryRequest;
 import com.enterprise.shellapi.dto.PersonalInfoRequest;
@@ -10,6 +11,7 @@ import com.enterprise.shellapi.dto.RecordSummary;
 import com.enterprise.shellapi.dto.WorkInfoRequest;
 import com.enterprise.shellapi.exception.RecordNotFoundException;
 import com.enterprise.shellapi.model.Certification;
+import com.enterprise.shellapi.model.Compensation;
 import com.enterprise.shellapi.model.EmergencyContact;
 import com.enterprise.shellapi.model.History;
 import com.enterprise.shellapi.model.PersonalInfo;
@@ -17,6 +19,7 @@ import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
 import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.repository.CertificationRepository;
+import com.enterprise.shellapi.repository.CompensationRepository;
 import com.enterprise.shellapi.repository.EmergencyContactRepository;
 import com.enterprise.shellapi.repository.RecordRepository;
 
@@ -34,6 +37,7 @@ public class RecordService {
     private final RecordRepository recordRepository;
     private final EmergencyContactRepository emergencyContactRepository;
     private final CertificationRepository certificationRepository;
+    private final CompensationRepository compensationRepository;
     private final RecordRequestValidator validator;
 
     public List<RecordSummary> search(String name, String email, String department,
@@ -74,6 +78,7 @@ public class RecordService {
         recordRepository.update(uuid, record);
 
         Long internalId = existing.getId();
+        syncCompensation(internalId, request.getCompensation());
         HistoryRequest history = request.getHistory();
         syncEmergencyContacts(internalId, history != null ? history.getEmergencyContacts() : null);
         syncCertifications(internalId, history != null ? history.getCertifications() : null);
@@ -88,7 +93,36 @@ public class RecordService {
         recordRepository.delete(uuid);
     }
 
+    private Compensation mapCompensation(Long recordId, CompensationRequest req) {
+        return Compensation.builder()
+                .recordId(recordId)
+                .baseSalary(req.getBaseSalary())
+                .payFrequency(req.getPayFrequency())
+                .bonusTarget(req.getBonusTarget())
+                .stockOptions(req.getStockOptions())
+                .effectiveDate(req.getEffectiveDate())
+                .overtimeEligible(req.getOvertimeEligible() != null ? req.getOvertimeEligible() : false)
+                .build();
+    }
+
+    private void saveCompensation(Long recordId, CompensationRequest compensationReq) {
+        if (compensationReq != null) {
+            compensationRepository.insert(mapCompensation(recordId, compensationReq));
+        }
+    }
+
+    private void syncCompensation(Long recordId, CompensationRequest compensationReq) {
+        if (compensationReq == null) {
+            compensationRepository.deleteByRecordId(recordId);
+        } else if (compensationRepository.findByRecordId(recordId).isPresent()) {
+            compensationRepository.update(mapCompensation(recordId, compensationReq));
+        } else {
+            compensationRepository.insert(mapCompensation(recordId, compensationReq));
+        }
+    }
+
     private void loadRelations(Record record) {
+        record.setCompensation(compensationRepository.findByRecordId(record.getId()).orElse(null));
         record.setHistory(History.builder()
                 .emergencyContacts(emergencyContactRepository.findByRecordId(record.getId()))
                 .certifications(certificationRepository.findByRecordId(record.getId()))
@@ -96,6 +130,7 @@ public class RecordService {
     }
 
     private void saveRelations(Long recordId, RecordRequest request) {
+        saveCompensation(recordId, request.getCompensation());
         HistoryRequest history = request.getHistory();
         if (history != null && history.getEmergencyContacts() != null) {
             for (EmergencyContactRequest ecReq : history.getEmergencyContacts()) {

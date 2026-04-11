@@ -21,6 +21,7 @@ public class Record {
     private PersonalInfo personalInfo;
     private WorkInfo workInfo;
     private Preferences preferences;
+    private Compensation compensation;
     private History history;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

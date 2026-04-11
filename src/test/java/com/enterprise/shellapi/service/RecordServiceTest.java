@@ -1,6 +1,7 @@
 package com.enterprise.shellapi.service;
 
 import com.enterprise.shellapi.dto.CertificationRequest;
+import com.enterprise.shellapi.dto.CompensationRequest;
 import com.enterprise.shellapi.dto.EmergencyContactRequest;
 import com.enterprise.shellapi.dto.HistoryRequest;
 import com.enterprise.shellapi.dto.PersonalInfoRequest;
@@ -10,12 +11,14 @@ import com.enterprise.shellapi.dto.RecordSummary;
 import com.enterprise.shellapi.dto.WorkInfoRequest;
 import com.enterprise.shellapi.exception.RecordNotFoundException;
 import com.enterprise.shellapi.model.Certification;
+import com.enterprise.shellapi.model.Compensation;
 import com.enterprise.shellapi.model.EmergencyContact;
 import com.enterprise.shellapi.model.PersonalInfo;
 import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
 import com.enterprise.shellapi.model.WorkInfo;
 import com.enterprise.shellapi.repository.CertificationRepository;
+import com.enterprise.shellapi.repository.CompensationRepository;
 import com.enterprise.shellapi.repository.EmergencyContactRepository;
 import com.enterprise.shellapi.repository.RecordRepository;
 import org.junit.jupiter.api.Test;
@@ -45,6 +48,9 @@ class RecordServiceTest {
 
     @Mock
     private CertificationRepository certificationRepository;
+
+    @Mock
+    private CompensationRepository compensationRepository;
 
     @Mock
     private RecordRequestValidator validator;
@@ -99,6 +105,7 @@ class RecordServiceTest {
     void findByUuid_existingRecord_returnsRecord() {
         Record record = buildRecord(1L, TEST_UUID, "Alice", "alice@test.com");
         when(recordRepository.findByUuid(TEST_UUID)).thenReturn(Optional.of(record));
+        when(compensationRepository.findByRecordId(1L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(1L)).thenReturn(
                 List.of(EmergencyContact.builder().id(1L).name("Contact").build()));
         when(certificationRepository.findByRecordId(1L)).thenReturn(
@@ -128,6 +135,7 @@ class RecordServiceTest {
         when(recordRepository.insert(any(Record.class))).thenReturn(5L);
         Record saved = buildRecord(5L, TEST_UUID, "New Person", "new@test.com");
         when(recordRepository.findById(5L)).thenReturn(Optional.of(saved));
+        when(compensationRepository.findByRecordId(5L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(5L)).thenReturn(Collections.emptyList());
         when(certificationRepository.findByRecordId(5L)).thenReturn(Collections.emptyList());
 
@@ -146,6 +154,7 @@ class RecordServiceTest {
                 .thenReturn(Optional.of(existing))
                 .thenReturn(Optional.of(updated));
         when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        when(compensationRepository.findByRecordId(1L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
         when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
 
@@ -202,6 +211,7 @@ class RecordServiceTest {
         when(recordRepository.insert(any(Record.class))).thenReturn(10L);
         Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
         when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(compensationRepository.findByRecordId(10L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
         when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
 
@@ -218,6 +228,7 @@ class RecordServiceTest {
         when(recordRepository.insert(any(Record.class))).thenReturn(10L);
         Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
         when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(compensationRepository.findByRecordId(10L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
         when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
 
@@ -246,6 +257,7 @@ class RecordServiceTest {
         when(recordRepository.insert(any(Record.class))).thenReturn(10L);
         Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
         when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(compensationRepository.findByRecordId(10L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
         when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
 
@@ -269,6 +281,7 @@ class RecordServiceTest {
         when(recordRepository.insert(any(Record.class))).thenReturn(10L);
         Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
         when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(compensationRepository.findByRecordId(10L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
         when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
 
@@ -289,6 +302,7 @@ class RecordServiceTest {
                 .thenReturn(Optional.of(existing))
                 .thenReturn(Optional.of(updated));
         when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        when(compensationRepository.findByRecordId(1L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
         when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
 
@@ -322,6 +336,7 @@ class RecordServiceTest {
                 .thenReturn(Optional.of(existing))
                 .thenReturn(Optional.of(updated));
         when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        when(compensationRepository.findByRecordId(1L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
         when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
 
@@ -355,6 +370,7 @@ class RecordServiceTest {
                 .thenReturn(Optional.of(existing))
                 .thenReturn(Optional.of(updated));
         when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        when(compensationRepository.findByRecordId(1L)).thenReturn(Optional.empty());
         when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
         when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
 
@@ -375,5 +391,132 @@ class RecordServiceTest {
 
         assertThat(result).isEmpty();
         verify(recordRepository).search(null, null, null, null, null);
+    }
+
+    @Test
+    void create_withCompensation_savesCompensation() {
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder().name("Test").email("t@t.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Eng").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .compensation(CompensationRequest.builder()
+                        .baseSalary(new java.math.BigDecimal("100000"))
+                        .payFrequency("annual")
+                        .effectiveDate(LocalDate.of(2024, 1, 1))
+                        .build())
+                .build();
+
+        when(recordRepository.insert(any(Record.class))).thenReturn(10L);
+        Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
+        when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(compensationRepository.findByRecordId(10L)).thenReturn(Optional.empty());
+        when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+
+        recordService.create(request);
+
+        verify(compensationRepository).insert(any(Compensation.class));
+    }
+
+    @Test
+    void create_withoutCompensation_skipsCompensation() {
+        RecordRequest request = buildRequest("Test", "t@t.com");
+
+        when(recordRepository.insert(any(Record.class))).thenReturn(10L);
+        Record saved = buildRecord(10L, TEST_UUID, "Test", "t@t.com");
+        when(recordRepository.findById(10L)).thenReturn(Optional.of(saved));
+        when(compensationRepository.findByRecordId(10L)).thenReturn(Optional.empty());
+        when(emergencyContactRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(10L)).thenReturn(Collections.emptyList());
+
+        recordService.create(request);
+
+        verify(compensationRepository, never()).insert(any(Compensation.class));
+    }
+
+    @Test
+    void update_withCompensation_existingRow_updates() {
+        Record existing = buildRecord(1L, TEST_UUID, "Old", "old@test.com");
+        Record updated = buildRecord(1L, TEST_UUID, "Updated", "updated@test.com");
+
+        when(recordRepository.findByUuid(TEST_UUID))
+                .thenReturn(Optional.of(existing))
+                .thenReturn(Optional.of(updated));
+        when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        when(compensationRepository.findByRecordId(1L))
+                .thenReturn(Optional.of(Compensation.builder().id(1L).recordId(1L).build()));
+        when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder().name("Updated").email("updated@test.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Eng").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .compensation(CompensationRequest.builder()
+                        .baseSalary(new java.math.BigDecimal("120000"))
+                        .payFrequency("annual")
+                        .effectiveDate(LocalDate.of(2025, 1, 1))
+                        .build())
+                .build();
+
+        recordService.update(TEST_UUID, request);
+
+        verify(compensationRepository).update(any(Compensation.class));
+        verify(compensationRepository, never()).insert(any(Compensation.class));
+    }
+
+    @Test
+    void update_withCompensation_noExistingRow_inserts() {
+        Record existing = buildRecord(1L, TEST_UUID, "Old", "old@test.com");
+        Record updated = buildRecord(1L, TEST_UUID, "Updated", "updated@test.com");
+
+        when(recordRepository.findByUuid(TEST_UUID))
+                .thenReturn(Optional.of(existing))
+                .thenReturn(Optional.of(updated));
+        when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        // First call for syncCompensation check, second for loadRelations
+        when(compensationRepository.findByRecordId(1L))
+                .thenReturn(Optional.empty());
+        when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+
+        RecordRequest request = RecordRequest.builder()
+                .personalInfo(PersonalInfoRequest.builder().name("Updated").email("updated@test.com").build())
+                .workInfo(WorkInfoRequest.builder()
+                        .jobTitle("Eng").department("Engineering")
+                        .status("active").employmentType("full-time").build())
+                .compensation(CompensationRequest.builder()
+                        .baseSalary(new java.math.BigDecimal("80000"))
+                        .payFrequency("monthly")
+                        .effectiveDate(LocalDate.of(2025, 1, 1))
+                        .build())
+                .build();
+
+        recordService.update(TEST_UUID, request);
+
+        verify(compensationRepository).insert(any(Compensation.class));
+        verify(compensationRepository, never()).update(any(Compensation.class));
+    }
+
+    @Test
+    void update_withNullCompensation_deletesExisting() {
+        Record existing = buildRecord(1L, TEST_UUID, "Old", "old@test.com");
+        Record updated = buildRecord(1L, TEST_UUID, "Updated", "updated@test.com");
+
+        when(recordRepository.findByUuid(TEST_UUID))
+                .thenReturn(Optional.of(existing))
+                .thenReturn(Optional.of(updated));
+        when(recordRepository.update(eq(TEST_UUID), any(Record.class))).thenReturn(1);
+        when(compensationRepository.findByRecordId(1L)).thenReturn(Optional.empty());
+        when(emergencyContactRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+        when(certificationRepository.findByRecordId(1L)).thenReturn(Collections.emptyList());
+
+        RecordRequest request = buildRequest("Updated", "updated@test.com");
+
+        recordService.update(TEST_UUID, request);
+
+        verify(compensationRepository).deleteByRecordId(1L);
     }
 }

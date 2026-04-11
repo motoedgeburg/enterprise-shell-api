@@ -35,6 +35,10 @@ public class LookupRepository {
         return queryForList("findAccessLevels");
     }
 
+    public List<String> findPayFrequencies() {
+        return queryForList("findPayFrequencies");
+    }
+
     public List<String> findRelationships() {
         return queryForList("findRelationships");
     }
