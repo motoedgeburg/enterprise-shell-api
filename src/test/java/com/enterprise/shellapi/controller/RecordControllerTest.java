@@ -4,6 +4,7 @@ import com.enterprise.shellapi.dto.ErrorResponse;
 import com.enterprise.shellapi.dto.PersonalInfoRequest;
 import com.enterprise.shellapi.dto.PreferencesRequest;
 import com.enterprise.shellapi.dto.RecordRequest;
+import com.enterprise.shellapi.model.History;
 import com.enterprise.shellapi.dto.RecordSummary;
 import com.enterprise.shellapi.dto.WorkInfoRequest;
 import com.enterprise.shellapi.exception.GlobalExceptionHandler;
@@ -76,8 +77,10 @@ class RecordControllerTest {
                         .notificationChannels(Collections.emptyList())
                         .accessLevel("standard")
                         .build())
-                .emergencyContacts(Collections.emptyList())
-                .certifications(Collections.emptyList())
+                .history(History.builder()
+                        .emergencyContacts(Collections.emptyList())
+                        .certifications(Collections.emptyList())
+                        .build())
                 .createdAt(LocalDateTime.now())
                 .build();
     }

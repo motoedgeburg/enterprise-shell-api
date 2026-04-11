@@ -1,6 +1,7 @@
 package com.enterprise.shellapi.service;
 
 import com.enterprise.shellapi.dto.EmergencyContactRequest;
+import com.enterprise.shellapi.dto.HistoryRequest;
 import com.enterprise.shellapi.dto.PersonalInfoRequest;
 import com.enterprise.shellapi.dto.PreferencesRequest;
 import com.enterprise.shellapi.dto.RecordRequest;
@@ -145,15 +146,17 @@ class RecordRequestValidatorTest {
                 .workInfo(WorkInfoRequest.builder()
                         .jobTitle("Eng").department("Engineering")
                         .status("active").employmentType("full-time").build())
-                .emergencyContacts(List.of(EmergencyContactRequest.builder()
-                        .name("Contact").relationship("Neighbor").build()))
+                .history(HistoryRequest.builder()
+                        .emergencyContacts(List.of(EmergencyContactRequest.builder()
+                                .name("Contact").relationship("Neighbor").build()))
+                        .build())
                 .build();
 
         assertThatThrownBy(() -> validator.validate(request))
                 .isInstanceOf(ValidationException.class)
                 .satisfies(ex -> {
                     ValidationException ve = (ValidationException) ex;
-                    assertThat(ve.getFieldErrors().get(0).getField()).isEqualTo("emergencyContacts[0].relationship");
+                    assertThat(ve.getFieldErrors().get(0).getField()).isEqualTo("history.emergencyContacts[0].relationship");
                 });
     }
 

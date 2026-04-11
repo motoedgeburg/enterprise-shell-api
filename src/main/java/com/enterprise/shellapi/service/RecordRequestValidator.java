@@ -36,12 +36,13 @@ public class RecordRequestValidator {
                     request.getPreferences().getAccessLevel(), lookupRepository.findAccessLevels());
         }
 
-        if (request.getEmergencyContacts() != null) {
+        if (request.getHistory() != null && request.getHistory().getEmergencyContacts() != null) {
             List<String> validRelationships = lookupRepository.findRelationships();
-            for (int i = 0; i < request.getEmergencyContacts().size(); i++) {
-                EmergencyContactRequest ec = request.getEmergencyContacts().get(i);
+            List<EmergencyContactRequest> contacts = request.getHistory().getEmergencyContacts();
+            for (int i = 0; i < contacts.size(); i++) {
+                EmergencyContactRequest ec = contacts.get(i);
                 if (ec.getRelationship() != null) {
-                    validateLookup(errors, "emergencyContacts[" + i + "].relationship",
+                    validateLookup(errors, "history.emergencyContacts[" + i + "].relationship",
                             ec.getRelationship(), validRelationships);
                 }
             }

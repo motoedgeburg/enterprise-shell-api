@@ -103,8 +103,8 @@ class RecordServiceTest {
 
         assertThat(result.getUuid()).isEqualTo(TEST_UUID);
         assertThat(result.getPersonalInfo().getName()).isEqualTo("Alice");
-        assertThat(result.getEmergencyContacts()).hasSize(1);
-        assertThat(result.getCertifications()).hasSize(1);
+        assertThat(result.getHistory().getEmergencyContacts()).hasSize(1);
+        assertThat(result.getHistory().getCertifications()).hasSize(1);
     }
 
     @Test

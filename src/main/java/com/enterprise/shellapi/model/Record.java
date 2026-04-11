@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
@@ -22,8 +21,7 @@ public class Record {
     private PersonalInfo personalInfo;
     private WorkInfo workInfo;
     private Preferences preferences;
-    private List<EmergencyContact> emergencyContacts;
-    private List<Certification> certifications;
+    private History history;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

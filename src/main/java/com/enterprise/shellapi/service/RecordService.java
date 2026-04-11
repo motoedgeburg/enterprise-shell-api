@@ -2,6 +2,7 @@ package com.enterprise.shellapi.service;
 
 import com.enterprise.shellapi.dto.CertificationRequest;
 import com.enterprise.shellapi.dto.EmergencyContactRequest;
+import com.enterprise.shellapi.dto.HistoryRequest;
 import com.enterprise.shellapi.dto.PersonalInfoRequest;
 import com.enterprise.shellapi.dto.PreferencesRequest;
 import com.enterprise.shellapi.dto.RecordRequest;
@@ -10,6 +11,7 @@ import com.enterprise.shellapi.dto.WorkInfoRequest;
 import com.enterprise.shellapi.exception.RecordNotFoundException;
 import com.enterprise.shellapi.model.Certification;
 import com.enterprise.shellapi.model.EmergencyContact;
+import com.enterprise.shellapi.model.History;
 import com.enterprise.shellapi.model.PersonalInfo;
 import com.enterprise.shellapi.model.Preferences;
 import com.enterprise.shellapi.model.Record;
@@ -72,8 +74,9 @@ public class RecordService {
         recordRepository.update(uuid, record);
 
         Long internalId = existing.getId();
-        syncEmergencyContacts(internalId, request.getEmergencyContacts());
-        syncCertifications(internalId, request.getCertifications());
+        HistoryRequest history = request.getHistory();
+        syncEmergencyContacts(internalId, history != null ? history.getEmergencyContacts() : null);
+        syncCertifications(internalId, history != null ? history.getCertifications() : null);
 
         return findByUuid(uuid);
     }
@@ -86,13 +89,16 @@ public class RecordService {
     }
 
     private void loadRelations(Record record) {
-        record.setEmergencyContacts(emergencyContactRepository.findByRecordId(record.getId()));
-        record.setCertifications(certificationRepository.findByRecordId(record.getId()));
+        record.setHistory(History.builder()
+                .emergencyContacts(emergencyContactRepository.findByRecordId(record.getId()))
+                .certifications(certificationRepository.findByRecordId(record.getId()))
+                .build());
     }
 
     private void saveRelations(Long recordId, RecordRequest request) {
-        if (request.getEmergencyContacts() != null) {
-            for (EmergencyContactRequest ecReq : request.getEmergencyContacts()) {
+        HistoryRequest history = request.getHistory();
+        if (history != null && history.getEmergencyContacts() != null) {
+            for (EmergencyContactRequest ecReq : history.getEmergencyContacts()) {
                 EmergencyContact contact = EmergencyContact.builder()
                         .recordId(recordId)
                         .name(ecReq.getName())
@@ -104,8 +110,8 @@ public class RecordService {
                 emergencyContactRepository.insert(contact);
             }
         }
-        if (request.getCertifications() != null) {
-            for (CertificationRequest certReq : request.getCertifications()) {
+        if (history != null && history.getCertifications() != null) {
+            for (CertificationRequest certReq : history.getCertifications()) {
                 Certification cert = Certification.builder()
                         .recordId(recordId)
                         .name(certReq.getName())
